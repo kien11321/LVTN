@@ -44,8 +44,13 @@ class PhanCongController extends Controller
                         ->orWhere('sinhvien.mssv', 'like', "%{$search}%");
                 });
             }
-
-            $phanCongs = $query->orderBy('sinhvien.mssv')->get();
+            $phanCongs = $query
+                ->orderByRaw(
+                    "CASE 
+            WHEN nhom_sinhvien.ten_nhom IS NULL THEN 9999
+            ELSE CAST(REPLACE(nhom_sinhvien.ten_nhom, 'Nhóm ', '') AS UNSIGNED)
+            END"
+                )->orderBy('sinhvien.mssv')->get();
 
             // Giữ lại các biến khác cho View
             $giangViens = GiangVien::orderBy('hoten')->get();
@@ -97,7 +102,7 @@ class PhanCongController extends Controller
                 $tenNhom = $nhom?->ten_nhom ?: 'chưa đặt tên';
 
                 $deTai = DeTai::create([
-                    'ten_detai' => 'Đề tài ' . $tenNhom . ' (tạm)',
+                    'ten_detai' =>   /*$tenNhom .*/ 'Chưa cập nhật tên đề tài',
                     'mo_ta' => 'Đề tài tạm được tạo khi phân công giảng viên trước',
                     'giangvien_id' => $giangVienId,
                     'nhom_sinhvien_id' => $nhomChiTiet->nhom_sinhvien_id,
@@ -107,13 +112,20 @@ class PhanCongController extends Controller
 
             DB::commit();
 
+            if ($request->expectsJson()) {
+                return response()->json(['ok' => true]);
+            }
+
             return redirect()
                 ->route('phancong.index')
                 ->with('success', 'Phân công giảng viên hướng dẫn thành công!');
         } catch (\Exception $e) {
             DB::rollBack();
-            return redirect()
-                ->route('phancong.index')
+            if ($request->expectsJson()) {
+                return response()->json(['message' => 'Có lỗi xảy ra: ' . $e->getMessage()], 500);
+            }
+
+            return redirect()->route('phancong.index')
                 ->with('error', 'Có lỗi xảy ra: ' . $e->getMessage());
         }
     }
@@ -227,6 +239,98 @@ class PhanCongController extends Controller
             DB::rollBack();
             return redirect()
                 ->route('phancong.index')
+                ->with('error', 'Có lỗi xảy ra: ' . $e->getMessage());
+        }
+    }
+    public function updateNhomBulk(Request $request)
+    {
+        $request->validate([
+            'so_nhom' => 'array', // so_nhom[SV_ID] => number
+        ]);
+
+        $data = $request->input('so_nhom', []); // mảng [sinhvien_id => so_nhom]
+
+        try {
+            DB::beginTransaction();
+
+            foreach ($data as $sinhVienId => $soNhom) {
+                // bỏ qua ô trống
+                if ($soNhom === null || $soNhom === '') continue;
+
+                $sinhVienId = (int) $sinhVienId;
+                $soNhom = (int) $soNhom;
+
+                if ($soNhom < 1) continue;
+
+                $tenNhom = "Nhóm {$soNhom}";
+
+                // tìm nhóm theo tên
+                $nhomId = DB::table('nhom_sinhvien')
+                    ->where('ten_nhom', $tenNhom)
+                    ->value('id');
+
+                // chưa có thì tạo
+                if (!$nhomId) {
+                    $nhomId = DB::table('nhom_sinhvien')->insertGetId([
+                        'ten_nhom' => $tenNhom,
+                        'truong_nhom_id' => null,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+                }
+
+                // lấy nhóm cũ
+                $nhomCuId = DB::table('nhom_sinhvien_chitiet')
+                    ->where('sinhvien_id', $sinhVienId)
+                    ->value('nhom_sinhvien_id');
+
+                // nếu đã ở đúng nhóm rồi thì bỏ qua
+                if ($nhomCuId == $nhomId) continue;
+
+                // xóa nhóm cũ của SV
+                DB::table('nhom_sinhvien_chitiet')
+                    ->where('sinhvien_id', $sinhVienId)
+                    ->delete();
+
+                // nếu nhóm cũ rỗng -> bỏ gán đề tài (giữ logic giống bạn)
+                if ($nhomCuId) {
+                    $soThanhVienConLai = DB::table('nhom_sinhvien_chitiet')
+                        ->where('nhom_sinhvien_id', $nhomCuId)
+                        ->count();
+
+                    if ($soThanhVienConLai == 0) {
+                        DB::table('detai')
+                            ->where('nhom_sinhvien_id', $nhomCuId)
+                            ->update(['nhom_sinhvien_id' => null]);
+                    }
+                }
+
+                // kiểm tra trưởng nhóm: nếu nhóm chưa có trưởng -> set SV này làm trưởng
+                $nhom = DB::table('nhom_sinhvien')->find($nhomId);
+                $isTruongNhom = ($nhom && !$nhom->truong_nhom_id);
+
+                DB::table('nhom_sinhvien_chitiet')->insert([
+                    'nhom_sinhvien_id' => $nhomId,
+                    'sinhvien_id' => $sinhVienId,
+                    'vai_tro' => $isTruongNhom ? 'truong_nhom' : 'thanh_vien',
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+
+                if ($isTruongNhom) {
+                    DB::table('nhom_sinhvien')
+                        ->where('id', $nhomId)
+                        ->update(['truong_nhom_id' => $sinhVienId]);
+                }
+            }
+
+            DB::commit();
+
+            return redirect()->route('phancong.index')
+                ->with('success', 'Đã lưu nhóm cho các sinh viên!');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return redirect()->route('phancong.index')
                 ->with('error', 'Có lỗi xảy ra: ' . $e->getMessage());
         }
     }

@@ -54,6 +54,8 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/phancong', [PhanCongController::class, 'index'])->name('phancong.index');
     Route::post('/phancong/update', [PhanCongController::class, 'update'])->name('phancong.update');
     Route::post('/phancong/update-nhom', [PhanCongController::class, 'updateNhom'])->name('phancong.update-nhom');
+    Route::post('/phancong/update-nhom-bulk', [PhanCongController::class, 'updateNhomBulk'])
+        ->name('phancong.update-nhom-bulk');
 });
 
 // Routes theo dõi tiến độ
