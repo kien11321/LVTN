@@ -163,10 +163,29 @@ class PhanCongController extends Controller
                 $nhomId = $nhomMoiId;
             }
 
+            $nhomCuId = DB::table('nhom_sinhvien_chitiet')
+                ->where('sinhvien_id', $sinhVienId)
+                ->value('nhom_sinhvien_id');
+
+
             // Xóa nhóm cũ của sinh viên
             DB::table('nhom_sinhvien_chitiet')
                 ->where('sinhvien_id', $sinhVienId)
                 ->delete();
+
+            if ($nhomCuId) {
+                $soThanhVienConLai = DB::table('nhom_sinhvien_chitiet')
+                    ->where('nhom_sinhvien_id', $nhomCuId)
+                    ->count();
+
+                if ($soThanhVienConLai == 0) {
+                    // Bỏ gán đề tài của nhóm cũ
+                    DB::table('detai')
+                        ->where('nhom_sinhvien_id', $nhomCuId)
+                        ->update(['nhom_sinhvien_id' => null]);
+                }
+            }
+
 
             // Kiểm tra nhóm đã có trưởng nhóm chưa
             $nhom = DB::table('nhom_sinhvien')->find($nhomId);
