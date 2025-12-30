@@ -7,9 +7,26 @@ use App\Models\NhomSinhVien;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use PhpOffice\PhpSpreadsheet\IOFactory;
+use Illuminate\Support\Facades\Auth;
+use App\Models\GiangVien;
 
 class SinhVienController extends Controller
 {
+
+    // Giảng viên chỉ thấy được danh sách sinh viên của mình
+    private function currentGiangVien()
+    {
+        $user = Auth::user();
+        if (!$user) return null;
+
+        if ($user->vaitro === 'gvhd' || $user->vaitro === 'giangvien' || $user->vaitro === 'gvpb') {
+            return GiangVien::where('nguoidung_id', $user->id)->first();
+        }
+
+        return null;
+    }
+
+
     /**
      * Hiển thị danh sách sinh viên
      */
@@ -17,7 +34,6 @@ class SinhVienController extends Controller
     {
         $search = $request->get('search', '');
 
-        // Query để lấy sinh viên với thông tin nhóm và giảng viên hướng dẫn
         $query = DB::table('sinhvien')
             ->leftJoin('nhom_sinhvien_chitiet', 'sinhvien.id', '=', 'nhom_sinhvien_chitiet.sinhvien_id')
             ->leftJoin('nhom_sinhvien', 'nhom_sinhvien_chitiet.nhom_sinhvien_id', '=', 'nhom_sinhvien.id')
@@ -32,10 +48,14 @@ class SinhVienController extends Controller
                 'sinhvien.email',
                 DB::raw('COALESCE(nhom_sinhvien.ten_nhom, "-") as nhom'),
                 DB::raw('COALESCE(giangvien.hoten, "-") as gvhd')
-
             );
 
-        // Tìm kiếm
+        // ✅ Lọc theo giảng viên đăng nhập
+        $giangVien = $this->currentGiangVien();
+        if ($giangVien) {
+            $query->where('detai.giangvien_id', $giangVien->id);
+        }
+
         if ($search) {
             $query->where(function ($q) use ($search) {
                 $q->where('sinhvien.hoten', 'like', "%{$search}%")
@@ -47,6 +67,9 @@ class SinhVienController extends Controller
 
         return view('sinhvien.index', compact('sinhViens', 'search'));
     }
+
+
+
     public function nhomChuaCoDeTai(Request $request)
     {
         $search = $request->get('search', '');

@@ -33,21 +33,21 @@ class MenuHelper
                     'icon' => '🏛️',
                     'route' => 'hoi-dong.index',
                 ],
-                // [
-                //     'title' => 'Nhập Liệu',
-                //     'icon' => '📝',
-                //     'children' => [
-                //         // ['title' => 'Tạo Phiếu Giao Đề Tài', 'route' => 'tao-phieu-giao-detai.index'],
-                //         // ['title' => 'GVHD Chấm Điểm', 'route' => 'cham-diem-hd.index'],
-                //         // ['title' => 'GVPB Chấm Điểm', 'route' => 'cham-diem-pb.index'],
-                //         // ['title' => 'Nhập điểm Hội đồng', 'route' => 'nhap-diem-hoi-dong.index'],
-                //     ],
-                // ],
-                // [
-                //     'title' => 'Phân công đề tài',
-                //     'icon' => '📋',
-                //     'route' => 'phancong-detai.index',
-                // ],
+                [
+                    'title' => 'Nhập Liệu',
+                    'icon' => '📝',
+                    'children' => [
+                        ['title' => 'Tạo Phiếu Nhiệm vụ cho đề tài', 'route' => 'tao-phieu-giao-detai.index'],
+                        ['title' => 'GVHD Chấm Điểm', 'route' => 'cham-diem-hd.index'],
+                        ['title' => 'GVPB Chấm Điểm', 'route' => 'cham-diem-pb.index'],
+                        ['title' => 'Nhập điểm Hội đồng', 'route' => 'nhap-diem-hoi-dong.index'],
+                    ],
+                ],
+                [
+                    'title' => 'Phân công đề tài',
+                    'icon' => '📋',
+                    'route' => 'phancong-detai.index',
+                ],
                 [
                     'title' => 'Theo dõi tiến độ',
                     'icon' => '📊',
@@ -59,14 +59,14 @@ class MenuHelper
         // Menu cho Giảng viên hướng dẫn (GVHD)
         if ($role === 'gvhd' || $role === 'giangvien' || $role === 'gvpb') {
             $menus = [
-                // [
-                //     'title' => 'Quản lý Sinh viên',
-                //     'icon' => '👥',
-                //     'children' => [
-                //         ['title' => 'Danh sách sinh viên', 'route' => 'sinhvien.index'],
-                //         
-                //     ],
-                // ],
+                [
+                    'title' => 'Quản lý Sinh viên',
+                    'icon' => '👥',
+                    'children' => [
+                        ['title' => 'Danh sách sinh viên', 'route' => 'sinhvien.index'],
+
+                    ],
+                ],
                 [
                     'title' => 'Nhập Liệu',
                     'icon' => '📝',

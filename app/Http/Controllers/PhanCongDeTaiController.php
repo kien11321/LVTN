@@ -376,7 +376,7 @@ class PhanCongDeTaiController extends Controller
 
     /**
      * Lưu đề tài mới
-     * - Giảng viên: ép giangvien_id = mình
+     * - Giảng viên:  giangvien_id = mình
      */
     public function storeDeTai(Request $request)
     {
