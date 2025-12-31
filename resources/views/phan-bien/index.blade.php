@@ -138,7 +138,7 @@
         border-collapse: collapse;
     }
     thead th {
-        background: #f3f4f6;
+        background: #2c3e50;
         padding: 10px 12px;
         text-align: left;
         border-bottom: 1px solid #e5e7eb;

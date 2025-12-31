@@ -278,11 +278,11 @@
         border-collapse: collapse;
     }
     thead th {
-        background: #6d28d9;
+        background: #2c3e50;
         color: #fff;
         padding: 12px;
         text-align: left;
-        border-bottom: 2px solid #5b21b6;
+        border-bottom: 2px solid #2c3e50;
         font-weight: 600;
     }
     tbody td {
