@@ -8,11 +8,7 @@
             <h1 class="page-title">Giảng viên Hướng dẫn chấm điểm</h1>
             <p class="page-subtitle">Đây là phần chấm điểm luận văn các nhóm dành cho giảng viên hướng dẫn</p>
         </div>
-        <div>
-            <a href="{{ route('cham-diem-hd.export-excel') }}" class="btn btn-success">
-                📊 Xuất Excel Danh sách SV - GVHD - GVPB
-            </a>
-        </div>
+       
     </div>
 
     @if (session('error'))
