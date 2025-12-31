@@ -38,7 +38,7 @@ class SinhVienController extends Controller
             ->leftJoin('nhom_sinhvien_chitiet', 'sinhvien.id', '=', 'nhom_sinhvien_chitiet.sinhvien_id')
             ->leftJoin('nhom_sinhvien', 'nhom_sinhvien_chitiet.nhom_sinhvien_id', '=', 'nhom_sinhvien.id')
             ->leftJoin('detai', 'nhom_sinhvien.id', '=', 'detai.nhom_sinhvien_id')
-            ->leftJoin('giangvien', 'detai.giangvien_id', '=', 'giangvien.id')
+            ->leftJoin('giangvien', 'detai.giangvien_id', '=', 'giangvien.id')   
             ->select(
                 'sinhvien.id',
                 'sinhvien.mssv',

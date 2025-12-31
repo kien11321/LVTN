@@ -337,7 +337,7 @@ class ChamDiemHuongDanController extends Controller
         $user = Auth::user();
         $gv = $this->getGiangVienForUser($user);
 
-        // Lấy tất cả đề tài mà GV này hướng dẫn
+        // Lấy tất cả đề tài mà GV này THAM GIA (hướng dẫn HOẶC phản biện)
         $query = DeTai::with([
             'nhomSinhVien.sinhViens',
             'giangVien',
@@ -347,7 +347,11 @@ class ChamDiemHuongDanController extends Controller
             ->whereHas('nhomSinhVien.sinhViens');
 
         if ($gv) {
-            $query->where('giangvien_id', $gv->id);
+            // Nếu là GV: lấy cả đề tài mình hướng dẫn VÀ phản biện
+            $query->where(function ($q) use ($gv) {
+                $q->where('giangvien_id', $gv->id)           // GVHD
+                    ->orWhere('giangvien_phanbien_id', $gv->id); // GVPB
+            });
         }
 
         $deTais = $query->orderBy('ten_detai')->get();
@@ -356,36 +360,35 @@ class ChamDiemHuongDanController extends Controller
         $spreadsheet = new Spreadsheet();
         $sheet = $spreadsheet->getActiveSheet();
 
-        // Tiêu đề chính (màu đỏ)
-        $sheet->mergeCells('A1:H1');
+        // Tiêu đề chính (màu đỏ) - Chỉ còn 7 cột (A:G)
+        $sheet->mergeCells('A1:G1');
         $sheet->setCellValue('A1', 'DANH SÁCH SINH VIÊN - GIÁO VIÊN HƯỚNG DẪN- GIÁO VIÊN PHẢN BIỆN - THU QUYỀN LVTN');
         $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(14)->getColor()->setRGB('FF0000');
         $sheet->getStyle('A1')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
         $sheet->getRowDimension(1)->setRowHeight(25);
 
-        // Subtitle (màu tím)
-        $sheet->mergeCells('A2:H2');
-        $sheet->setCellValue('A2', 'ĐẠI HỌC 2025 VÀ KHÓA CŨ LÀM LẠI (ĐỢT 1_THÁNG 4');
+        // Subtitle (màu tím) - 7 cột
+        $sheet->mergeCells('A2:G2');
+        $sheet->setCellValue('A2', 'ĐẠI HỌC 2025 VÀ KHÓA CŨ LÀM LẠI (ĐỢT 1_THÁNG 4)');
         $sheet->getStyle('A2')->getFont()->setBold(true)->setSize(12)->getColor()->setRGB('800080');
         $sheet->getStyle('A2')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
         $sheet->getRowDimension(2)->setRowHeight(20);
 
-        // Ngành (màu đen)
-        $sheet->mergeCells('A3:H3');
+        // Ngành (màu đen) - 7 cột
+        $sheet->mergeCells('A3:G3');
         $sheet->setCellValue('A3', 'NGÀNH : CÔNG NGHỆ THÔNG TIN');
         $sheet->getStyle('A3')->getFont()->setBold(true)->setSize(12);
         $sheet->getStyle('A3')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
         $sheet->getRowDimension(3)->setRowHeight(20);
 
-        // Header row 4
+        // Header row 4 - CHỈ CÒN 7 CỘT (A:G)
         $sheet->setCellValue('A4', 'STT');
         $sheet->setCellValue('B4', 'MSSV');
         $sheet->setCellValue('C4', 'Họ và tên SV');
         $sheet->setCellValue('D4', 'Lớp');
         $sheet->setCellValue('E4', 'Tên đề tài' . "\n" . '(GVHD nhập)');
-        $sheet->setCellValue('F4', '');
-        $sheet->setCellValue('G4', 'GVHD');
-        $sheet->setCellValue('H4', 'GVPB');
+        $sheet->setCellValue('F4', 'GVHD'); // Cột F bây giờ là GVHD
+        $sheet->setCellValue('G4', 'GVPB'); // Cột G bây giờ là GVPB
 
         // Format header rows (màu vàng và xanh lá)
         $yellowStyle = [
@@ -403,7 +406,7 @@ class ChamDiemHuongDanController extends Controller
             ],
             'borders' => [
                 'allBorders' => [
-                    'borderStyle' => Border::BORDER_THIN,
+                    'borderStyle' => Border::BORDER_MEDIUM, // Đường viền đậm hơn
                 ],
             ],
         ];
@@ -424,12 +427,12 @@ class ChamDiemHuongDanController extends Controller
             ],
             'borders' => [
                 'allBorders' => [
-                    'borderStyle' => Border::BORDER_THIN,
+                    'borderStyle' => Border::BORDER_MEDIUM,
                 ],
             ],
         ];
 
-        // Merge các cells header
+        // Merge các cells header - CHỈ CÒN 7 CỘT
         $sheet->mergeCells('A4:A5');
         $sheet->mergeCells('B4:B5');
         $sheet->mergeCells('C4:C5');
@@ -437,17 +440,16 @@ class ChamDiemHuongDanController extends Controller
         $sheet->mergeCells('E4:E5');
         $sheet->mergeCells('F4:F5');
         $sheet->mergeCells('G4:G5');
-        $sheet->mergeCells('H4:H5');
 
-        // Áp dụng màu vàng cho A, B, C, D, G, H
+        // Áp dụng màu vàng cho A, B, C, D, F, G
         $sheet->getStyle('A4')->applyFromArray($yellowStyle);
         $sheet->getStyle('B4')->applyFromArray($yellowStyle);
         $sheet->getStyle('C4')->applyFromArray($yellowStyle);
         $sheet->getStyle('D4')->applyFromArray($yellowStyle);
+        $sheet->getStyle('F4')->applyFromArray($yellowStyle);
         $sheet->getStyle('G4')->applyFromArray($yellowStyle);
-        $sheet->getStyle('H4')->applyFromArray($yellowStyle);
 
-        // Áp dụng màu xanh lá cho E
+        // Áp dụng màu xanh lá cho E (cột đề tài)
         $sheet->getStyle('E4')->applyFromArray($greenStyle);
         $sheet->getStyle('E4')->getAlignment()->setWrapText(true);
 
@@ -457,50 +459,89 @@ class ChamDiemHuongDanController extends Controller
         // Dữ liệu
         $row = 6;
         $stt = 1;
+
+        // Style cho từng cell border riêng biệt
+        $fullBorderStyle = [
+            'borders' => [
+                'allBorders' => [
+                    'borderStyle' => Border::BORDER_THIN,
+                    'color' => ['rgb' => '000000'],
+                ],
+            ],
+        ];
+
         foreach ($deTais as $deTai) {
             if (!$deTai->nhomSinhVien || $deTai->nhomSinhVien->sinhViens->isEmpty()) {
                 continue;
             }
 
             foreach ($deTai->nhomSinhVien->sinhViens as $sv) {
+                // Không xuất các ô trống
+                if (empty($sv->mssv) && empty($sv->hoten) && empty($sv->lop)) {
+                    continue;
+                }
+
                 $sheet->setCellValue('A' . $row, $stt++);
                 $sheet->setCellValue('B' . $row, $sv->mssv ?? '-');
                 $sheet->setCellValue('C' . $row, $sv->hoten ?? '-');
                 $sheet->setCellValue('D' . $row, $sv->lop ?? '-');
                 $sheet->setCellValue('E' . $row, $deTai->ten_detai ?? '-');
-                $sheet->setCellValue('F' . $row, ''); // Cột trống
-                $sheet->setCellValue('G' . $row, $deTai->giangVien ? $deTai->giangVien->hoten : '-');
-                $sheet->setCellValue('H' . $row, $deTai->giangVienPhanBien ? $deTai->giangVienPhanBien->hoten : '-');
+                $sheet->setCellValue('F' . $row, $deTai->giangVien ? $deTai->giangVien->hoten : '-');
+                $sheet->setCellValue('G' . $row, $deTai->giangVienPhanBien ? $deTai->giangVienPhanBien->hoten : '-');
 
-                // Format data row
-                $dataStyle = [
-                    'borders' => [
-                        'allBorders' => [
-                            'borderStyle' => Border::BORDER_THIN,
-                        ],
-                    ],
-                    'alignment' => [
-                        'vertical' => Alignment::VERTICAL_CENTER,
-                    ],
-                ];
-                $sheet->getStyle('A' . $row . ':H' . $row)->applyFromArray($dataStyle);
+                // Áp dụng border đầy đủ cho dòng dữ liệu
+                $sheet->getStyle('A' . $row . ':G' . $row)->applyFromArray($fullBorderStyle);
+
+                // Căn giữa cho các cột số và mã
                 $sheet->getStyle('A' . $row)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
                 $sheet->getStyle('B' . $row)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
                 $sheet->getStyle('D' . $row)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+                $sheet->getStyle('F' . $row)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+                $sheet->getStyle('G' . $row)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
 
                 $row++;
             }
         }
 
-        // Auto width columns
-        $sheet->getColumnDimension('A')->setWidth(8);
-        $sheet->getColumnDimension('B')->setWidth(12);
-        $sheet->getColumnDimension('C')->setWidth(25);
-        $sheet->getColumnDimension('D')->setWidth(12);
-        $sheet->getColumnDimension('E')->setWidth(40);
-        $sheet->getColumnDimension('F')->setWidth(5);
-        $sheet->getColumnDimension('G')->setWidth(20);
-        $sheet->getColumnDimension('H')->setWidth(20);
+        // Thêm border cho phần tiêu đề (nếu chưa đủ)
+        $sheet->getStyle('A1:G3')->applyFromArray([
+            'borders' => [
+                'outline' => [
+                    'borderStyle' => Border::BORDER_MEDIUM,
+                ],
+            ],
+        ]);
+
+        // Thêm border đầy đủ cho toàn bộ header (dòng 4-5)
+        $sheet->getStyle('A4:G5')->applyFromArray($fullBorderStyle);
+
+        // Tô màu nền cho phần tiêu đề
+        $titleStyle = [
+            'fill' => [
+                'fillType' => Fill::FILL_SOLID,
+                'startColor' => ['rgb' => 'F0F0F0'], // Màu xám nhạt
+            ],
+            'borders' => [
+                'allBorders' => [
+                    'borderStyle' => Border::BORDER_THIN,
+                ],
+            ],
+        ];
+        $sheet->getStyle('A1:G3')->applyFromArray($titleStyle);
+
+        // Auto width columns - CHỈ CÒN 7 CỘT
+        $sheet->getColumnDimension('A')->setWidth(8);      // STT
+        $sheet->getColumnDimension('B')->setWidth(12);     // MSSV
+        $sheet->getColumnDimension('C')->setWidth(25);     // Họ tên
+        $sheet->getColumnDimension('D')->setWidth(12);     // Lớp
+        $sheet->getColumnDimension('E')->setWidth(40);     // Đề tài
+        $sheet->getColumnDimension('F')->setWidth(20);     // GVHD
+        $sheet->getColumnDimension('G')->setWidth(20);     // GVPB
+
+        // Đặt chiều cao tự động cho các dòng có nội dung dài
+        for ($i = 6; $i < $row; $i++) {
+            $sheet->getRowDimension($i)->setRowHeight(-1); // Auto height
+        }
 
         // Writer
         $writer = new Xlsx($spreadsheet);

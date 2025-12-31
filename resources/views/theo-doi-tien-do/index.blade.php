@@ -39,12 +39,18 @@
                     <th>Lớp</th>
                     <th>Email</th>
                     <th>SĐT</th>
+
                     <th>Tên Đề tài</th>
+                    @if ($isAdmin)
+                        <th>GVHD</th>
+                    @endif
                     <th>Nhóm</th>
                     <th>Tiến độ GK</th>
                     <th>Quyết định</th>
                     <th>Ghi chú GK</th>
-                    @if(!$isAdmin)  <th>Hành động</th>@endif
+                    @if (!$isAdmin)
+                        <th>Hành động</th>
+                    @endif
                 </tr>
             </thead>
             <tbody>
@@ -73,11 +79,17 @@
                             <td class="sv-info-cell">{{ $sv->email }}</td>
                             <td class="sv-info-cell">{{ $sv->sdt }}</td>
 
+
                             <!-- Cột nhóm/đề tài - merge cells, không có border giữa các SV cùng nhóm -->
                             @if ($index === 0)
                                 <td class="nhom-cell" rowspan="{{ $sinhViens->count() }}">
                                     <strong>{{ $tenDetai }}</strong>
                                 </td>
+                                @if ($isAdmin)
+                                    <td class="nhom-cell" rowspan="{{ $sinhViens->count() }}">
+                                        <strong>{{ $firstSV->gvhd ?? '-' }}</strong>
+                                    </td>
+                                @endif
                                 <td class="nhom-cell" rowspan="{{ $sinhViens->count() }}">
                                     <strong>{{ $tenNhom }}</strong>
                                 </td>
@@ -88,6 +100,7 @@
                                         <span class="text-muted">-</span>
                                     @endif
                                 </td>
+
                                 <td class="nhom-cell" rowspan="{{ $sinhViens->count() }}">
                                     @if ($quyetDinh)
                                         <span class="quyet-dinh-badge {{ $label['class'] }}">{{ $label['text'] }}</span>
@@ -102,7 +115,7 @@
                                         <span class="text-muted">-</span>
                                     @endif
                                 </td>
-                                  @if(!$isAdmin)
+                                @if (!$isAdmin)
                                     <td class="nhom-cell" rowspan="{{ $sinhViens->count() }}">
                                         <button type="button" class="btn btn-primary btn-sm"
                                             onclick="openUpdateModal({{ $nhomId }}, '{{ addslashes($tenNhom) }}', {{ $tienDo ?? 0 }}, '{{ $quyetDinh }}', '{{ addslashes($ghiChu) }}')">
@@ -252,8 +265,8 @@
 
         /* Tách biệt rõ ràng giữa phần thông tin SV và phần nhóm */
         /* .sv-info-cell:last-of-type {
-                        border-right: 3px solid #007bff;
-                    } */
+                                        border-right: 3px solid #007bff;
+                                    } */
 
         /* Khoảng cách giữa các nhóm */
         tbody tr:last-child td {

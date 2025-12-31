@@ -28,10 +28,10 @@
                     <tr>
                         <th style="width: 60px;">STT</th>
                         <th style="width: 150px;">Mã SV</th>
-                        <th>Họ tên</th>
+                        <th style="width: 350px;">Họ tên</th>
                         <th style="width: 120px;">Lớp</th>
-                        <th style="width: 150px;">Ngành</th>
-                        <th>Email</th>
+
+                        <th style="width: 350px;">Email</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -41,7 +41,7 @@
                             <td class="mssv-column">{{ $sv->mssv }}</td>
                             <td class="name-column">{{ $sv->hoten }}</td>
                             <td>{{ $sv->lop }}</td>
-                            <td>{{ $sv->khoa }}</td> {{-- Đây là cột Ngành lấy từ trường khoa --}}
+
                             <td>{{ $sv->email }}</td>
                         </tr>
                     @empty
@@ -58,7 +58,6 @@
 @endsection
 
 @push('styles')
-
     <style>
         .page-header {
             margin-bottom: 25px;
