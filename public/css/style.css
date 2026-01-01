@@ -5,15 +5,17 @@
             box-sizing: border-box;
         }
         
-        body {
-            font-family: 'Inter', sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-        }
+        /* ===== LOGIN PAGE ONLY ===== */
+.page-login{
+    font-family: 'Inter', sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
         
         .login-container {
             background: white;
@@ -463,14 +465,27 @@
             margin: 0 auto;
         }
 
-        /* cham diem ht */
-        .page-cham-diem-hd .page-header {
+/* =========================
+   PAGE: GV HƯỚNG DẪN CHẤM ĐIỂM
+   Scope: .page-cham-diem-hd
+   ========================= */
+
+.page-cham-diem-hd .page-header {
     display: flex;
     justify-content: space-between;
+    align-items: flex-start;
     margin-bottom: 16px;
 }
 
+.page-cham-diem-hd .page-title {
+    font-size: 24px;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 4px;
+}
+
 .page-cham-diem-hd .page-subtitle {
+    margin: 0;
     color: #666;
 }
 
@@ -488,21 +503,23 @@
     margin-bottom: 16px;
 }
 
-.page-cham-diem-hd .mb-20 {
-    margin-bottom: 20px;
-}
-
-.page-cham-diem-hd .label-strong {
+.page-cham-diem-hd .form-group label {
     font-weight: 600;
-    margin-bottom: 8px;
     display: block;
+    margin-bottom: 8px;
 }
 
 .page-cham-diem-hd .form-control {
     width: 100%;
     padding: 8px 12px;
-    border-radius: 6px;
     border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 14px;
+}
+
+.page-cham-diem-hd .form-control:focus {
+    outline: none;
+    border-color: #4f46e5;
 }
 
 .page-cham-diem-hd .thang-diem-section {
@@ -513,6 +530,19 @@
     margin-bottom: 24px;
 }
 
+.page-cham-diem-hd .thang-diem-section h3 {
+    margin-top: 0;
+    margin-bottom: 6px;
+    color: #dc2626;
+}
+
+.page-cham-diem-hd .thang-diem-note {
+    font-size: 12px;
+    color: #991b1b;
+    margin: 0 0 12px;
+    font-style: italic;
+}
+
 .page-cham-diem-hd .thang-diem-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -521,52 +551,171 @@
 
 .page-cham-diem-hd .thang-diem-item {
     background: #fff;
-    border: 1px solid #fecaca;
     padding: 12px;
     border-radius: 6px;
+    border: 1px solid #fecaca;
+}
+
+.page-cham-diem-hd .thang-diem-item label {
+    font-weight: 600;
+    display: block;
+    margin-bottom: 8px;
+    color: #7f1d1d;
+}
+
+.page-cham-diem-hd .thang-diem-value {
+    font-size: 18px;
+    font-weight: bold;
+    color: #dc2626;
+    text-align: center;
 }
 
 .page-cham-diem-hd .student-block {
-    background: #fafafa;
-    border: 1px solid #e5e7eb;
-    padding: 16px;
+    border: 1px solid #f1f5f9;
     border-radius: 8px;
+    padding: 16px;
     margin-bottom: 20px;
+    background: #fafafa;
 }
 
 .page-cham-diem-hd .student-head {
     display: flex;
     gap: 12px;
+    align-items: center;
     margin-bottom: 12px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.page-cham-diem-hd .student-head strong {
+    font-size: 16px;
+    color: #1f2937;
+}
+
+.page-cham-diem-hd .text-muted {
+    color: #6b7280;
 }
 
 .page-cham-diem-hd .score-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
     gap: 12px;
+    margin-bottom: 12px;
+}
+
+.page-cham-diem-hd .score-item label {
+    font-weight: 600;
+    display: block;
+    margin-bottom: 6px;
+    color: #374151;
+}
+
+.page-cham-diem-hd .score-item input {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 14px;
+}
+
+.page-cham-diem-hd .score-item input:focus {
+    outline: none;
+    border-color: #4f46e5;
+}
+
+.page-cham-diem-hd .max-hint {
+    color: #6b7280;
+    font-weight: 400;
+    font-size: 12px;
 }
 
 .page-cham-diem-hd .total-row {
     display: flex;
     gap: 24px;
     margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid #e5e7eb;
     font-weight: 600;
+}
+
+.page-cham-diem-hd .total-row div {
+    color: #1f2937;
+}
+
+.page-cham-diem-hd .total-row strong {
+    color: #059669;
+    font-size: 18px;
+}
+
+.page-cham-diem-hd .nhan-xet-section {
+    margin-top: 32px;
+    padding-top: 24px;
+    border-top: 2px solid #e5e7eb;
+}
+
+.page-cham-diem-hd .nhan-xet-section h3 {
+    margin-bottom: 20px;
+    color: #1f2937;
+}
+
+.page-cham-diem-hd .radio-group {
+    display: flex;
+    gap: 24px;
+    margin-top: 8px;
+    flex-wrap: wrap;
+}
+
+.page-cham-diem-hd .radio-group label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 400;
+    cursor: pointer;
+}
+
+.page-cham-diem-hd .radio-group input[type="radio"] {
+    width: auto;
+    margin: 0;
+}
+
+.page-cham-diem-hd .form-actions {
+    margin-top: 24px;
+    padding-top: 20px;
+    border-top: 2px solid #e5e7eb;
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
 }
 
 .page-cham-diem-hd .btn {
     padding: 10px 20px;
-    border-radius: 6px;
     border: none;
+    border-radius: 6px;
     cursor: pointer;
     color: #fff;
+    font-weight: 600;
+    text-decoration: none;
+    display: inline-block;
+    transition: background 0.2s, opacity 0.2s;
 }
 
-.page-cham-diem-hd .btn-primary {
+/* tránh bị đè bởi .btn-primary chung */
+.page-cham-diem-hd .btn.btn-primary {
     background: #4f46e5;
+}
+.page-cham-diem-hd .btn.btn-primary:hover {
+    background: #4338ca;
+}
+
+.page-cham-diem-hd .btn.btn-success {
+    background: #10b981;
+}
+.page-cham-diem-hd .btn.btn-success:hover {
+    background: #059669;
 }
 
 .page-cham-diem-hd .alert {
-    padding: 12px;
+    padding: 12px 16px;
     border-radius: 6px;
     margin-bottom: 16px;
 }
@@ -574,21 +723,15 @@
 .page-cham-diem-hd .alert-error {
     background: #fee2e2;
     color: #b91c1c;
+    border: 1px solid #fecaca;
 }
 
 .page-cham-diem-hd .alert-success {
     background: #dcfce7;
     color: #166534;
+    border: 1px solid #bbf7d0;
 }
 
-.page-cham-diem-hd .text-muted {
-    color: #6b7280;
-}
-
-.page-cham-diem-hd .text-center-p40 {
-    text-align: center;
-    padding: 40px;
-}
 /* =========================
    GIẢNG VIÊN PHẢN BIỆN - CHẤM ĐIỂM
    ========================= */

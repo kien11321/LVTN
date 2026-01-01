@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="vi">
-
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -11,10 +10,9 @@
     <link href="https://fonts.bunny.net/css?family=inter:400,500,600" rel="stylesheet" />
 
     <link rel="stylesheet" href="{{ asset('css/style.css') }}">
-
 </head>
 
-<body>
+<body class="page-login">
     <div class="login-container">
         <div class="login-header">
             <h1>Đăng nhập</h1>
@@ -36,13 +34,22 @@
 
             <div class="form-group">
                 <label for="email">Email</label>
-                <input type="email" id="email" name="email" value="{{ old('email') }}"
-                    placeholder="Nhập email của bạn" required autofocus>
+                <input type="email"
+                       id="email"
+                       name="email"
+                       value="{{ old('email') }}"
+                       placeholder="Nhập email của bạn"
+                       required
+                       autofocus>
             </div>
 
             <div class="form-group">
                 <label for="password">Mật khẩu</label>
-                <input type="password" id="password" name="password" placeholder="Nhập mật khẩu" required>
+                <input type="password"
+                       id="password"
+                       name="password"
+                       placeholder="Nhập mật khẩu"
+                       required>
             </div>
 
             <div class="remember-me">
@@ -56,5 +63,4 @@
         </form>
     </div>
 </body>
-
 </html>
