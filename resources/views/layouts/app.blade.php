@@ -21,10 +21,10 @@
     <!-- Sidebar -->
     <div class="sidebar">
         <div class="sidebar-header">
-    <a href="{{ route('dashboard') }}" class="logo-link">
-        <img src="{{ asset('Logo_STU.png') }}" alt="STU Logo" class="logo">
-    </a>
-</div>
+            <a href="{{ route('dashboard') }}" class="logo-link">
+                <img src="{{ asset('Logo_STU.png') }}" alt="STU Logo" class="logo">
+            </a>
+        </div>
         <nav class="sidebar-menu">
             @php
                 $userRole = auth()->user()->vaitro ?? 'guest';
@@ -130,38 +130,73 @@
     @stack('scripts')
 
     <script>
+        const STORAGE_KEY = 'sidebar_open_submenus';
+
+        function getOpenSubmenus() {
+            try {
+                return JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+            } catch (e) {
+                return [];
+            }
+        }
+
+        function setOpenSubmenus(arr) {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(arr));
+        }
+
         function toggleSubmenu(menuId) {
             const submenu = document.getElementById(menuId);
             const menuItem = submenu.closest('.menu-item');
 
+            let openMenus = getOpenSubmenus();
+
             if (submenu.classList.contains('show')) {
                 submenu.classList.remove('show');
                 menuItem.classList.remove('active');
-            } else {
-                // Đóng tất cả submenu khác
-                document.querySelectorAll('.submenu.show').forEach(item => {
-                    if (item.id !== menuId) {
-                        item.classList.remove('show');
-                        item.closest('.menu-item').classList.remove('active');
-                    }
-                });
 
+                // remove khỏi storage
+                openMenus = openMenus.filter(id => id !== menuId);
+                setOpenSubmenus(openMenus);
+            } else {
                 submenu.classList.add('show');
                 menuItem.classList.add('active');
+
+                // add vào storage
+                if (!openMenus.includes(menuId)) openMenus.push(menuId);
+                setOpenSubmenus(openMenus);
             }
         }
 
-        // Mở submenu nếu có child active khi load trang
         document.addEventListener('DOMContentLoaded', function() {
+            // 1) Khôi phục submenu đã mở trước đó
+            const openMenus = getOpenSubmenus();
+            openMenus.forEach(menuId => {
+                const submenu = document.getElementById(menuId);
+                if (submenu) {
+                    submenu.classList.add('show');
+                    submenu.closest('.menu-item')?.classList.add('active');
+                }
+            });
+
+            // 2) Nếu có submenu item active thì chắc chắn menu cha mở
             document.querySelectorAll('.submenu-item.active').forEach(activeItem => {
                 const submenu = activeItem.closest('.submenu');
                 if (submenu) {
                     submenu.classList.add('show');
-                    submenu.closest('.menu-item').classList.add('active');
+                    submenu.closest('.menu-item')?.classList.add('active');
+
+                    // đồng bộ vào storage để lần sau vẫn mở
+                    const id = submenu.id;
+                    let saved = getOpenSubmenus();
+                    if (id && !saved.includes(id)) {
+                        saved.push(id);
+                        setOpenSubmenus(saved);
+                    }
                 }
             });
         });
     </script>
+
 </body>
 
 </html>
