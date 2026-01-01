@@ -12,6 +12,11 @@ class MenuHelper
         if ($role === 'admin') {
             $menus = [
                 [
+                    'title' => 'Tổng quan',
+                    'icon'  => '📊',
+                    'route' => 'dashboard',
+                ],
+                [
                     'title' => 'Quản lý Sinh viên',
                     'icon' => '👥',
                     'children' => [
@@ -29,6 +34,16 @@ class MenuHelper
                     ],
                 ],
                 [
+                    'title' => 'Phân công đề tài',
+                    'icon' => '📋',
+                    'route' => 'phancong-detai.index',
+                ],
+                [
+                    'title' => 'Theo dõi tiến độ',
+                    'icon' => '📊',
+                    'route' => 'theo-doi-tien-do.index',
+                ],
+                [
                     'title' => 'Hội đồng LVTN',
                     'icon' => '🏛️',
                     'route' => 'hoi-dong.index',
@@ -43,22 +58,18 @@ class MenuHelper
                         ['title' => 'Nhập điểm Hội đồng', 'route' => 'nhap-diem-hoi-dong.index'],
                     ],
                 ],
-                [
-                    'title' => 'Phân công đề tài',
-                    'icon' => '📋',
-                    'route' => 'phancong-detai.index',
-                ],
-                [
-                    'title' => 'Theo dõi tiến độ',
-                    'icon' => '📊',
-                    'route' => 'theo-doi-tien-do.index',
-                ],
             ];
         }
 
         // Menu cho Giảng viên hướng dẫn (GVHD)
         if ($role === 'gvhd' || $role === 'giangvien' || $role === 'gvpb') {
             $menus = [
+                [
+                    'title' => 'Tổng quan',
+                    'icon'  => '📊',
+                    'route' => 'dashboard',
+                ],
+
                 // [
                 //     'title' => 'Quản lý Sinh viên',
                 //     'icon' => '👥',
@@ -67,29 +78,55 @@ class MenuHelper
 
                 //     ],
                 // ],
-                 ['title' => 'Danh sách sinh viên', 'route' => 'sinhvien.index'],
-               
+                ['title' => 'Danh sách sinh viên', 'icon' => '👥', 'route' => 'sinhvien.index'],
 
-                [
-                    'title' => 'Nhập Liệu',
-                    'icon' => '📝',
-                    'children' => [
-                        ['title' => 'Chấm điểm hướng dẫn', 'route' => 'cham-diem-hd.index'],
-                        ['title' => 'Chấm điểm phản biện', 'route' => 'cham-diem-pb.index'],
-                        ['title' => 'Nhập điểm Hội đồng', 'route' => 'nhap-diem-hoi-dong.index'],
-                    ],
-                ],
-                [
-                    'title' => 'Phân công đề tài',
-                    'icon' => '📋',
-                    'route' => 'phancong-detai.index',
-                ],
                 [
                     'title' => 'Theo dõi tiến độ',
                     'icon' => '📊',
                     'route' => 'theo-doi-tien-do.index',
                 ],
+
+                [
+                    'title' => 'Phân công đề tài',
+                    'icon' => '📋',
+                    'route' => 'phancong-detai.index',
+                ],
+
+                [
+                    'title' => 'Nhập Liệu',
+                    'icon' => '📝',
+                    'children' => [
+                        // Nếu bạn muốn gvpb không thấy "chấm điểm hướng dẫn" thì mình lọc bên dưới
+                        ['title' => 'Chấm điểm hướng dẫn', 'route' => 'cham-diem-hd.index'],
+                        ['title' => 'Chấm điểm phản biện', 'route' => 'cham-diem-pb.index'],
+                        ['title' => 'Nhập điểm Hội đồng', 'route' => 'nhap-diem-hoi-dong.index'],
+                    ],
+                ],
             ];
+
+            // Tuỳ chọn: lọc menu theo role cho hợp lý hơn
+            // - gvpb: chỉ nên thấy chấm điểm phản biện
+            // - gvhd: chỉ nên thấy chấm điểm hướng dẫn
+            // - giangvien: tuỳ bạn, có thể thấy cả 2
+            if ($role === 'gvpb') {
+                foreach ($menus as &$m) {
+                    if (isset($m['children']) && $m['title'] === 'Nhập Liệu') {
+                        $m['children'] = array_values(array_filter($m['children'], function ($c) {
+                            return $c['route'] !== 'cham-diem-hd.index';
+                        }));
+                    }
+                }
+            }
+
+            if ($role === 'gvhd') {
+                foreach ($menus as &$m) {
+                    if (isset($m['children']) && $m['title'] === 'Nhập Liệu') {
+                        $m['children'] = array_values(array_filter($m['children'], function ($c) {
+                            return $c['route'] !== 'cham-diem-pb.index';
+                        }));
+                    }
+                }
+            }
         }
 
         // Menu mặc định (nếu không match role nào)

@@ -21,10 +21,10 @@
     <!-- Sidebar -->
     <div class="sidebar">
         <div class="sidebar-header">
-            <a href="{{ route('dashboard') }}" class="logo-link">
-                <img src="{{ asset('Logo_STU.png') }}" alt="STU Logo" class="logo">
-            </a>
-        </div>
+    <a href="{{ route('dashboard') }}" class="logo-link">
+        <img src="{{ asset('Logo_STU.png') }}" alt="STU Logo" class="logo">
+    </a>
+</div>
         <nav class="sidebar-menu">
             @php
                 $userRole = auth()->user()->vaitro ?? 'guest';
@@ -120,17 +120,12 @@
     </div>
 
     <script>
-        const fileInput = document.getElementById('fileInput');
-        const fileNameEl = document.getElementById('fileName');
-
-        if (fileInput && fileNameEl) {
-            fileInput.addEventListener('change', function(e) {
-                const fileName = e.target.files[0]?.name || 'Không tệp nào được chọn';
-                fileNameEl.textContent = fileName;
-            });
-        }
+        // File input handler
+        document.getElementById('fileInput').addEventListener('change', function(e) {
+            const fileName = e.target.files[0]?.name || 'Không tệp nào được chọn';
+            document.getElementById('fileName').textContent = fileName;
+        });
     </script>
-
 
     @stack('scripts')
 
