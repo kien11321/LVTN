@@ -143,12 +143,11 @@ class PhanCongController extends Controller
         try {
             DB::beginTransaction();
 
-            $sinhVienId = $request->sinhvien_id;
+            $sinhVienId = (int) $request->sinhvien_id;
             $nhomId = $request->nhom_id;
 
             // Nếu chọn "Tạo nhóm mới"
             if ($nhomId === 'new') {
-                // Tự động tạo nhóm mới với tên "Nhóm X" (X là số tiếp theo)
                 $allNhoms = DB::table('nhom_sinhvien')
                     ->where('ten_nhom', 'like', 'Nhóm %')
                     ->get();
@@ -156,15 +155,12 @@ class PhanCongController extends Controller
                 $maxSo = 0;
                 foreach ($allNhoms as $nhom) {
                     $so = (int) str_replace('Nhóm ', '', $nhom->ten_nhom);
-                    if ($so > $maxSo) {
-                        $maxSo = $so;
-                    }
+                    if ($so > $maxSo) $maxSo = $so;
                 }
 
                 $soNhomMoi = $maxSo + 1;
                 $tenNhomMoi = "Nhóm {$soNhomMoi}";
 
-                // Tạo nhóm mới
                 $nhomMoiId = DB::table('nhom_sinhvien')->insertGetId([
                     'ten_nhom' => $tenNhomMoi,
                     'truong_nhom_id' => $sinhVienId,
@@ -173,12 +169,26 @@ class PhanCongController extends Controller
                 ]);
 
                 $nhomId = $nhomMoiId;
+            } else {
+                $nhomId = (int) $nhomId;
+            }
+
+            // ✅ CHECK GIỚI HẠN 2 THÀNH VIÊN (trừ chính SV nếu đang ở trong nhóm đó)
+            $countTrongNhom = DB::table('nhom_sinhvien_chitiet')
+                ->where('nhom_sinhvien_id', $nhomId)
+                ->where('sinhvien_id', '<>', $sinhVienId)
+                ->count();
+
+            if ($countTrongNhom >= 2) {
+                DB::rollBack();
+                return redirect()
+                    ->route('phancong.index')
+                    ->with('error', 'Nhóm đã đủ 2 thành viên. Vui lòng chọn nhóm khác!');
             }
 
             $nhomCuId = DB::table('nhom_sinhvien_chitiet')
                 ->where('sinhvien_id', $sinhVienId)
                 ->value('nhom_sinhvien_id');
-
 
             // Xóa nhóm cũ của sinh viên
             DB::table('nhom_sinhvien_chitiet')
@@ -191,30 +201,23 @@ class PhanCongController extends Controller
                     ->count();
 
                 if ($soThanhVienConLai == 0) {
-                    // Bỏ gán đề tài của nhóm cũ
                     DB::table('detai')
                         ->where('nhom_sinhvien_id', $nhomCuId)
                         ->update(['nhom_sinhvien_id' => null]);
                 }
             }
 
-
-            // Kiểm tra nhóm đã có trưởng nhóm chưa
+            // trưởng nhóm
             $nhom = DB::table('nhom_sinhvien')->find($nhomId);
             $isTruongNhom = false;
 
             if ($request->nhom_id === 'new') {
-                // Nhóm mới -> sinh viên này là trưởng nhóm
                 $isTruongNhom = true;
             } else {
-                // Nhóm cũ -> kiểm tra đã có trưởng nhóm chưa
                 $hasTruongNhom = $nhom && $nhom->truong_nhom_id;
-                if (!$hasTruongNhom) {
-                    $isTruongNhom = true;
-                }
+                if (!$hasTruongNhom) $isTruongNhom = true;
             }
 
-            // Thêm sinh viên vào nhóm
             DB::table('nhom_sinhvien_chitiet')->insert([
                 'nhom_sinhvien_id' => $nhomId,
                 'sinhvien_id' => $sinhVienId,
@@ -223,7 +226,6 @@ class PhanCongController extends Controller
                 'updated_at' => now(),
             ]);
 
-            // Cập nhật trưởng nhóm nếu cần
             if ($isTruongNhom) {
                 DB::table('nhom_sinhvien')
                     ->where('id', $nhomId)
@@ -242,34 +244,31 @@ class PhanCongController extends Controller
                 ->with('error', 'Có lỗi xảy ra: ' . $e->getMessage());
         }
     }
+
     public function updateNhomBulk(Request $request)
     {
         $request->validate([
-            'so_nhom' => 'array', // so_nhom[SV_ID] => number
+            'so_nhom' => 'array',
         ]);
 
-        $data = $request->input('so_nhom', []); // mảng [sinhvien_id => so_nhom]
+        $data = $request->input('so_nhom', []);
 
         try {
             DB::beginTransaction();
 
             foreach ($data as $sinhVienId => $soNhom) {
-                // bỏ qua ô trống
                 if ($soNhom === null || $soNhom === '') continue;
 
                 $sinhVienId = (int) $sinhVienId;
                 $soNhom = (int) $soNhom;
-
                 if ($soNhom < 1) continue;
 
                 $tenNhom = "Nhóm {$soNhom}";
 
-                // tìm nhóm theo tên
                 $nhomId = DB::table('nhom_sinhvien')
                     ->where('ten_nhom', $tenNhom)
                     ->value('id');
 
-                // chưa có thì tạo
                 if (!$nhomId) {
                     $nhomId = DB::table('nhom_sinhvien')->insertGetId([
                         'ten_nhom' => $tenNhom,
@@ -279,20 +278,29 @@ class PhanCongController extends Controller
                     ]);
                 }
 
-                // lấy nhóm cũ
                 $nhomCuId = DB::table('nhom_sinhvien_chitiet')
                     ->where('sinhvien_id', $sinhVienId)
                     ->value('nhom_sinhvien_id');
 
-                // nếu đã ở đúng nhóm rồi thì bỏ qua
                 if ($nhomCuId == $nhomId) continue;
+
+                // ✅ CHECK GIỚI HẠN 2 THÀNH VIÊN (trừ chính SV nếu có)
+                $countTrongNhom = DB::table('nhom_sinhvien_chitiet')
+                    ->where('nhom_sinhvien_id', $nhomId)
+                    ->where('sinhvien_id', '<>', $sinhVienId)
+                    ->count();
+
+                if ($countTrongNhom >= 2) {
+                    DB::rollBack();
+                    return redirect()->route('phancong.index')
+                        ->with('error', "Nhóm {$soNhom} đã đủ 2 thành viên. Vui lòng chọn nhóm khác!");
+                }
 
                 // xóa nhóm cũ của SV
                 DB::table('nhom_sinhvien_chitiet')
                     ->where('sinhvien_id', $sinhVienId)
                     ->delete();
 
-                // nếu nhóm cũ rỗng -> bỏ gán đề tài (giữ logic giống bạn)
                 if ($nhomCuId) {
                     $soThanhVienConLai = DB::table('nhom_sinhvien_chitiet')
                         ->where('nhom_sinhvien_id', $nhomCuId)
@@ -305,7 +313,6 @@ class PhanCongController extends Controller
                     }
                 }
 
-                // kiểm tra trưởng nhóm: nếu nhóm chưa có trưởng -> set SV này làm trưởng
                 $nhom = DB::table('nhom_sinhvien')->find($nhomId);
                 $isTruongNhom = ($nhom && !$nhom->truong_nhom_id);
 

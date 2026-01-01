@@ -59,14 +59,17 @@ class MenuHelper
         // Menu cho Giảng viên hướng dẫn (GVHD)
         if ($role === 'gvhd' || $role === 'giangvien' || $role === 'gvpb') {
             $menus = [
-                [
-                    'title' => 'Quản lý Sinh viên',
-                    'icon' => '👥',
-                    'children' => [
-                        ['title' => 'Danh sách sinh viên', 'route' => 'sinhvien.index'],
+                // [
+                //     'title' => 'Quản lý Sinh viên',
+                //     'icon' => '👥',
+                //     'children' => [
+                       
 
-                    ],
-                ],
+                //     ],
+                // ],
+                 ['title' => 'Danh sách sinh viên', 'route' => 'sinhvien.index'],
+               
+
                 [
                     'title' => 'Nhập Liệu',
                     'icon' => '📝',
