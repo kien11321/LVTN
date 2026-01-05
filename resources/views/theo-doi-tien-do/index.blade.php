@@ -151,7 +151,7 @@
 
                     <div class="form-group">
                         <label>Quyết định</label>
-                        <select id="quyet_dinh" name="quyet_dinh" class="form-control" disabled>
+                        <select id="quyet_dinh" name="quyet_dinh" class="form-control" >
 
                             <option value="duoc_lam_tiep">Được làm tiếp</option>
                             <option value="tam_dung">Tạm dừng</option>
