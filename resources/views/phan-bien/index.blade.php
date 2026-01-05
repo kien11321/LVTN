@@ -31,10 +31,11 @@
                 </ul>
             </div>
         @endif
+        <input type="text" id="searchInput" class="form-control" placeholder="Tìm theo MSSV hoặc họ tên...">
 
         <div class="card">
             <div class="table-container">
-                <table>
+                <table id="scoreTable">
                     <thead>
                         <tr>
                             <th>Nhóm</th>
@@ -136,6 +137,11 @@
 
         <script>
             document.addEventListener('DOMContentLoaded', function() {
+
+                /* =========================
+                 * SUBMIT FORM
+                 *
+                 * ========================= */
                 const forms = document.querySelectorAll('.inline-form');
 
                 forms.forEach(form => {
@@ -163,8 +169,50 @@
                         return true;
                     });
                 });
+
+                /* =========================
+                 * TÌM KIẾM 
+                 * ========================= */
+                const input = document.getElementById('searchInput');
+                const table = document.getElementById('scoreTable');
+                if (!input || !table) return;
+
+                const rows = Array.from(table.querySelectorAll('tbody tr'));
+
+                function normalize(str) {
+                    return (str || '')
+                        .toLowerCase()
+                        .normalize('NFD')
+                        .replace(/[\u0300-\u036f]/g, '') // bỏ dấu tiếng Việt
+                        .trim();
+                }
+
+                input.addEventListener('input', function() {
+                    const q = normalize(input.value);
+
+                    rows.forEach(row => {
+                        // Cột theo bảng hiện tại
+                        const tenNhom = normalize(row.cells[0]?.innerText);
+                        const tenDeTai = normalize(row.cells[1]?.innerText);
+                        const thanhVien = normalize(row.cells[2]?.innerText);
+                        const gvhd = normalize(row.cells[3]?.innerText);
+
+                        // Lấy GVPB đang được chọn (nếu có)
+                        const select = row.querySelector('select[name="gvpb_id"]');
+                        const gvpbSelected = select ?
+                            normalize(select.options[select.selectedIndex]?.text) :
+                            '';
+
+                        const haystack = `${tenNhom} ${tenDeTai} ${thanhVien} ${gvhd} ${gvpbSelected}`;
+                        const match = !q || haystack.includes(q);
+
+                        row.style.display = match ? '' : 'none';
+                    });
+                });
+
             });
         </script>
+
 
     </div>
 @endsection

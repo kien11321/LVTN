@@ -15,6 +15,16 @@
             </a>
         </div>
     </div>
+    {{--  SEARCH BAR --}}
+    <form method="GET" action="{{ route('theo-doi-tien-do.index') }}" class="search-bar">
+        <input type="text" name="search" class="search-input" placeholder="Tìm theo MSSV hoặc họ tên..."
+            value="{{ request('search', $search ?? '') }}">
+        <button type="submit" class="btn btn-primary">Tìm</button>
+
+        @if (request('search'))
+            <a href="{{ route('theo-doi-tien-do.index') }}" class="btn btn-secondary">Xóa</a>
+        @endif
+    </form>
 
     @php
         $isAdmin = auth()->user()->vaitro === 'admin';
@@ -135,12 +145,14 @@
                     <div class="form-group">
                         <label>Tiến độ (%)</label>
                         <input type="number" id="tien_do" name="tien_do" class="form-control" min="0"
-                            max="100">
+                            max="100" oninput="autoSetQuyetDinh()">
+
                     </div>
 
                     <div class="form-group">
                         <label>Quyết định</label>
-                        <select id="quyet_dinh" name="quyet_dinh" class="form-control">
+                        <select id="quyet_dinh" name="quyet_dinh" class="form-control" disabled>
+
                             <option value="duoc_lam_tiep">Được làm tiếp</option>
                             <option value="tam_dung">Tạm dừng</option>
                             <option value="huy">Hủy</option>
@@ -179,11 +191,25 @@
                 document.getElementById('updateModal').style.display = 'none';
             }
 
-            // đóng modal khi click ra ngoài
-            window.addEventListener('click', function(e) {
-                const modal = document.getElementById('updateModal');
-                if (e.target === modal) closeUpdateModal();
-            });
+            function autoSetQuyetDinh() {
+                const tienDoEl = document.getElementById('tien_do');
+                const qdEl = document.getElementById('quyet_dinh');
+                if (!tienDoEl || !qdEl) return;
+
+                const v = parseInt(tienDoEl.value || '0', 10);
+
+                // nếu đang chọn Hủy thì không tự đổi
+                if (qdEl.value === 'huy') return;
+
+                if (v < 50) qdEl.value = 'tam_dung';
+                else qdEl.value = 'duoc_lam_tiep';
+            }
+
+            // // đóng modal khi click ra ngoài
+            // window.addEventListener('click', function(e) {
+            //     const modal = document.getElementById('updateModal');
+            //     if (e.target === modal) closeUpdateModal();
+            // });
         </script>
     @endpush
 

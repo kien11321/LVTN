@@ -22,22 +22,26 @@
         <div class="card">
             <div class="card-body">
 
-                <div class="form-group mb-20">
-                    <label for="nhom_select" class="label-strong">Chọn Nhóm / Đề tài</label>
-                    <select id="nhom_select" name="nhom_id" class="form-control"
-                        onchange="window.location.href='{{ route('cham-diem-pb.index') }}?nhom_id=' + this.value">
-                        <option value="">-- Chọn nhóm --</option>
-                        @foreach ($allNhomSinhViens as $nhom)
-                            @php
-                                $svNames = $nhom->sinhViens->pluck('hoten')->join(', ');
-                                $deTaiTen = $nhom->deTai ? $nhom->deTai->ten_detai : 'Chưa có đề tài';
-                            @endphp
-                            <option value="{{ $nhom->id }}" {{ request('nhom_id') == $nhom->id ? 'selected' : '' }}>
-                                {{ $deTaiTen }} (SV: {{ $svNames }})
-                            </option>
-                        @endforeach
-                    </select>
-                </div>
+                <select id="nhom_select" name="nhom_id" class="form-control"
+                    onchange="window.location.href='{{ route('cham-diem-pb.index') }}?nhom_id=' + this.value">
+                    <option value="">-- Chọn nhóm --</option>
+
+                    @foreach ($allNhomSinhViens as $nhom)
+                        @php
+                            $svNames = $nhom->sinhViens->pluck('hoten')->join(', ');
+                            $deTaiTen = $nhom->deTai ? $nhom->deTai->ten_detai : 'Chưa có đề tài';
+
+                            // ✅ LẤY TRẠNG THÁI ĐÃ CHẤM TỪ CONTROLLER
+                            $daCham = in_array($nhom->id, $nhomDaChamIds ?? []);
+                        @endphp
+
+
+                        <option value="{{ $nhom->id }}" {{ request('nhom_id') == $nhom->id ? 'selected' : '' }}>
+                            {{ $deTaiTen }} (SV: {{ $svNames }}) - {{ $daCham ? '✅ Đã chấm' : '⏳ Chưa chấm' }}
+                        </option>
+                    @endforeach
+                </select>
+
 
                 @if ($selectedNhom)
                     @php

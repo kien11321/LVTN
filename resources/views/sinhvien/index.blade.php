@@ -27,19 +27,25 @@
                 <button type="submit" class="btn btn-success">Tìm kiếm</button>
             </form>
 
-            <div class="top-actions">
-                <form method="POST" action="{{ route('sinhvien.import.post') }}" enctype="multipart/form-data"
-                    class="import-form">
-                    @csrf
-                    <input type="file" name="file" accept=".xlsx,.xls" required id="import-file" class="import-file"
-                        onchange="this.form.submit()">
-                    <label for="import-file" class="btn btn-primary import-label">
-                        📥 Import Excel
-                    </label>
-                </form>
 
-                <a href="{{ route('sinhvien.create') }}" class="btn btn-success">➕ Thêm mới</a>
-            </div>
+            @if (auth()->user()->vaitro === 'admin')
+                <div class="top-actions">
+                    <form method="POST" action="{{ route('sinhvien.import.post') }}" enctype="multipart/form-data"
+                        class="import-form">
+                        @csrf
+                        <input type="file" name="file" accept=".xlsx,.xls" required id="import-file"
+                            class="import-file" onchange="this.form.submit()">
+
+                        <label for="import-file" class="btn btn-primary import-label">
+                            📥 Import Excel
+                        </label>
+
+
+                    </form>
+
+                    <a href="{{ route('sinhvien.create') }}" class="btn btn-success">➕ Thêm mới</a>
+                </div>
+            @endif
         </div>
 
         <!-- Student Table -->

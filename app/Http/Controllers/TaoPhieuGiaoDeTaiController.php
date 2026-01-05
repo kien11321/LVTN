@@ -2,6 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\GiangVien;
+
+use Illuminate\Support\Facades\Auth;
 use App\Models\NhomSinhVien;
 use Illuminate\Http\Request;
 use PhpOffice\PhpWord\TemplateProcessor;
@@ -16,16 +19,34 @@ class TaoPhieuGiaoDeTaiController extends Controller
     public function index()
     {
         try {
+            $user = Auth::user();
+
+            // Lấy giảng viên theo user đăng nhập (nếu là GV)
+            $giangVien = null;
+            if ($user && in_array($user->vaitro, ['gvhd', 'giangvien'])) {
+                $giangVien = GiangVien::where('nguoidung_id', $user->id)->first();
+            }
+
             // Lấy danh sách nhóm đã có đề tài để hỗ trợ tự động điền
-            $nhoms = NhomSinhVien::with(['sinhViens', 'deTai.giangVien'])
+            $nhomsQuery = NhomSinhVien::with(['sinhViens', 'deTai.giangVien'])
                 ->whereHas('deTai')
-                ->whereHas('sinhViens')
+                ->whereHas('sinhViens');
+
+            // ✅ Nếu là giảng viên: chỉ lấy nhóm có đề tài do mình hướng dẫn
+            if ($giangVien) {
+                $nhomsQuery->whereHas('deTai', function ($q) use ($giangVien) {
+                    $q->where('giangvien_id', $giangVien->id);
+                });
+            }
+
+            $nhoms = $nhomsQuery
                 ->orderBy('ten_nhom')
                 ->get();
 
             $nhomData = $nhoms->map(function ($nhom) {
                 $sv1 = $nhom->sinhViens->first();
                 $sv2 = $nhom->sinhViens->count() > 1 ? $nhom->sinhViens->skip(1)->first() : null;
+
                 return [
                     'id' => $nhom->id,
                     'sv1' => $sv1 ? ['hoten' => $sv1->hoten, 'mssv' => $sv1->mssv, 'lop' => $sv1->lop] : null,
@@ -41,6 +62,7 @@ class TaoPhieuGiaoDeTaiController extends Controller
                 ->with('error', 'Lỗi: ' . $e->getMessage());
         }
     }
+
 
     /**
      * Xử lý xuất file Word từ Template FormNhiemVu.docx

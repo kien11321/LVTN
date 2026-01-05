@@ -27,7 +27,7 @@
             {{-- Card Sinh viên --}}
             <div class="stat-card stat-card--blue">
                 <div class="stat-card__left">
-                    <div class="stat-card__label">{{ $isGiangVien ? 'Sinh viên mình hướng dẫn' : 'Tổng sinh viên' }}</div>
+                    <div class="stat-card__label">{{ $isGiangVien ? 'Sinh viên  hướng dẫn' : 'Tổng sinh viên' }}</div>
                     <div class="stat-card__value">{{ $svCount }}</div>
                 </div>
                 <div class="stat-card__icon">
@@ -57,7 +57,7 @@
             {{-- Card Đề tài --}}
             <div class="stat-card stat-card--orange">
                 <div class="stat-card__left">
-                    <div class="stat-card__label">{{ $isGiangVien ? 'Đề tài mình được phân' : 'Tổng đề tài' }}</div>
+                    <div class="stat-card__label">{{ $isGiangVien ? 'Tổng đề tài' : 'Tổng đề tài' }}</div>
                     <div class="stat-card__value">{{ $dtCount }}</div>
                 </div>
                 <div class="stat-card__icon">

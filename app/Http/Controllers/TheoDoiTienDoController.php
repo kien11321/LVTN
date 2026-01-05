@@ -23,10 +23,16 @@ class TheoDoiTienDoController extends Controller
     /**
      * Hiển thị danh sách sinh viên và tiến độ
      */
-    public function index()
+    /**
+     * Hiển thị danh sách sinh viên và tiến độ
+     */
+    public function index(Request $request)
     {
         try {
             $user = Auth::user();
+
+            // ✅ (THÊM) Lấy từ khóa tìm kiếm
+            $search = trim($request->get('search', ''));
 
             // Kiểm tra bảng có tồn tại không
             try {
@@ -61,6 +67,14 @@ class TheoDoiTienDoController extends Controller
                     'theo_doi_tien_do.ghi_chu'
                 );
 
+            // ✅ (THÊM) Tìm kiếm theo MSSV hoặc Họ tên
+            if ($search !== '') {
+                $query->where(function ($q) use ($search) {
+                    $q->where('sinhvien.mssv', 'like', "%{$search}%")
+                        ->orWhere('sinhvien.hoten', 'like', "%{$search}%");
+                });
+            }
+
             // Nếu là giảng viên, chỉ hiển thị sinh viên của nhóm mình hướng dẫn
             if ($user->vaitro === 'gvhd' || $user->vaitro === 'giangvien') {
                 $giangVien = GiangVien::where('nguoidung_id', $user->id)->first();
@@ -81,12 +95,14 @@ class TheoDoiTienDoController extends Controller
             // Group theo nhóm - kiểm tra collection không rỗng
             $nhomGroups = $sinhViens->isNotEmpty() ? $sinhViens->groupBy('nhom_id') : collect();
 
-            return view('theo-doi-tien-do.index', compact('nhomGroups'));
+            // ✅ (THÊM) Truyền $search để view giữ lại input tìm kiếm
+            return view('theo-doi-tien-do.index', compact('nhomGroups', 'search'));
         } catch (\Exception $e) {
             return redirect('/create-theo-doi-tien-do-table')
                 ->with('error', 'Lỗi: ' . $e->getMessage());
         }
     }
+
 
     /**
      * Hiển thị form cập nhật tiến độ

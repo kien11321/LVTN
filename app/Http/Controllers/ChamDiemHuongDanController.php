@@ -109,7 +109,6 @@ class ChamDiemHuongDanController extends Controller
                 });
             })
             ->when($user->vaitro === 'admin', function ($q) {
-                // Nếu là admin, chỉ hiển thị nhóm có đề tài
                 $q->whereHas('deTai');
             })
             ->whereHas('sinhViens') // Chỉ hiển thị nhóm có thành viên
@@ -118,6 +117,26 @@ class ChamDiemHuongDanController extends Controller
             })
             ->orderBy('ten_nhom')
             ->get();
+
+        $nhomDaChamIds = [];
+        if ($gv) {
+            foreach ($allNhomSinhViens as $nhom) {
+                $detaiId = $nhom->deTai->id ?? null;
+                if (!$detaiId) continue;
+
+                $svIds = $nhom->sinhViens->pluck('id')->toArray();
+                if (empty($svIds)) continue;
+
+                $countDaCham = ChamDiemHuongDan::where('giangvien_id', $gv->id)
+                    ->where('detai_id', $detaiId)
+                    ->whereIn('sinhvien_id', $svIds)
+                    ->count();
+
+                if ($countDaCham === count($svIds)) {
+                    $nhomDaChamIds[] = $nhom->id;
+                }
+            }
+        }
 
         // Nhóm được chọn (nếu có)
         $selectedNhomId = $request->get('nhom_id');
@@ -134,8 +153,14 @@ class ChamDiemHuongDanController extends Controller
             }
         }
 
-        return view('cham-diem-hd.index', compact('allNhomSinhViens', 'selectedNhom', 'chamDiems'));
+        return view('cham-diem-hd.index', compact(
+            'allNhomSinhViens',
+            'selectedNhom',
+            'chamDiems',
+            'nhomDaChamIds'
+        ));
     }
+
 
     public function store(Request $request)
     {
@@ -329,5 +354,4 @@ class ChamDiemHuongDanController extends Controller
             return back()->with('error', 'Lỗi: ' . $e->getMessage());
         }
     }
-
 }
