@@ -117,7 +117,7 @@ class PhanCongDeTaiController extends Controller
     }
 
     /**
-     * API tìm kiếm đề tài theo tên
+     *  tìm kiếm đề tài theo tên
      * - Giảng viên: chỉ tìm trong đề tài của mình
      */
     public function searchDeTai(Request $request)
@@ -198,7 +198,7 @@ class PhanCongDeTaiController extends Controller
                 $existingDeTai->mo_ta = 'Đề tài được cập nhật từ form phân công';
                 $existingDeTai->save();
             } else {
-                // tạo mới -> giảng viên thì gắn theo mình, admin thì lấy giảng viên đầu tiên (như bạn đang làm)
+                // tạo mới -> giảng viên thì gắn theo mình, admin thì lấy giảng viên đầu tiên 
                 $giangVienId = null;
 
                 if ($giangVien) {
@@ -376,7 +376,7 @@ class PhanCongDeTaiController extends Controller
 
     /**
      * Lưu đề tài mới
-     * - Giảng viên: ép giangvien_id = mình
+     * - Giảng viên:  giangvien_id = mình
      */
     public function storeDeTai(Request $request)
     {

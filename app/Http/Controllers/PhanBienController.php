@@ -7,8 +7,13 @@ use App\Models\GiangVien;
 use App\Models\NhomSinhVien;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpFoundation\StreamedResponse;
+
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+use PhpOffice\PhpSpreadsheet\Style\Fill;
+use PhpOffice\PhpSpreadsheet\Style\Alignment;
+use PhpOffice\PhpSpreadsheet\Style\Border;
 
 class PhanBienController extends Controller
 {
@@ -17,19 +22,15 @@ class PhanBienController extends Controller
      */
     public function index()
     {
-        // Lấy tất cả nhóm có đề tài để có thể phân công giảng viên phản biện
-        // Chỉ lấy nhóm có thành viên và có đề tài
-        // Loại bỏ nhóm có quyết định "Tạm dừng"
         $nhoms = NhomSinhVien::with([
             'sinhViens',
             'deTai.giangVien',
             'deTai.giangVienPhanBien',
-            'theoDoiTienDo', // Load relationship để kiểm tra
+            'theoDoiTienDo',
         ])
-            ->whereHas('sinhViens') // Chỉ lấy nhóm có thành viên
-            ->whereHas('deTai') // Chỉ lấy nhóm có đề tài
+            ->whereHas('sinhViens')
+            ->whereHas('deTai')
             ->whereDoesntHave('theoDoiTienDo', function ($query) {
-                // Loại bỏ nhóm có quyet_dinh = 'tam_dung'
                 $query->where('quyet_dinh', 'tam_dung');
             })
             ->orderBy('ten_nhom')
@@ -45,10 +46,6 @@ class PhanBienController extends Controller
      */
     public function update(Request $request)
     {
-        \Log::info('PhanBienController@update', [
-            'request_data' => $request->all(),
-        ]);
-
         $request->validate([
             'detai_id' => 'required|exists:detai,id',
             'gvpb_id' => 'required|exists:giangvien,id',
@@ -64,108 +61,216 @@ class PhanBienController extends Controller
 
             // Không cho GVHD phản biện đề tài của mình
             if ($deTai->giangvien_id && $deTai->giangvien_id === (int) $request->gvpb_id) {
-                return redirect()
-                    ->back()
-                    ->with('error', 'Giảng viên phản biện không được trùng với giảng viên hướng dẫn!');
+                return redirect()->back()->with('error', 'Giảng viên phản biện không được trùng với giảng viên hướng dẫn!');
             }
 
-            $deTai->giangvien_phanbien_id = $request->gvpb_id;
+            $deTai->giangvien_phanbien_id = (int) $request->gvpb_id;
             $deTai->save();
 
-            \Log::info('PhanBienController@update - Success', [
-                'detai_id' => $deTai->id,
-                'gvpb_id' => $request->gvpb_id,
-            ]);
-
-            return redirect()
-                ->back()
-                ->with('success', 'Phân công giảng viên phản biện thành công!');
+            return redirect()->back()->with('success', 'Phân công giảng viên phản biện thành công!');
         } catch (\Exception $e) {
-            \Log::error('PhanBienController@update - Error', [
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-            ]);
-
-            return redirect()
-                ->back()
-                ->with('error', 'Có lỗi xảy ra: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Có lỗi xảy ra: ' . $e->getMessage());
         }
     }
 
     /**
-     * Xuất Excel (CSV) danh sách sinh viên với GVHD & GVPB
+     * Tìm giảng viên theo user (KHÔNG tự tạo cho admin)
      */
-    public function exportCsv(): StreamedResponse
+    private function getGiangVienForUser($user): ?GiangVien
     {
-        DB::select('SELECT 1 FROM detai LIMIT 1'); // ensure table exists
+        // Admin: không cần map sang giảng viên
+        if (($user->vaitro ?? '') === 'admin') {
+            return null;
+        }
 
-        $user = Auth::user();
+        // Tìm qua nguoidung_id
+        $gv = GiangVien::where('nguoidung_id', $user->id)->first();
+        if ($gv) return $gv;
 
-        $query = DB::table('sinhvien')
-            ->leftJoin('nhom_sinhvien_chitiet', 'sinhvien.id', '=', 'nhom_sinhvien_chitiet.sinhvien_id')
-            ->leftJoin('nhom_sinhvien', 'nhom_sinhvien_chitiet.nhom_sinhvien_id', '=', 'nhom_sinhvien.id')
-            ->leftJoin('detai', 'nhom_sinhvien.id', '=', 'detai.nhom_sinhvien_id')
-            ->leftJoin('giangvien as gvhd', 'detai.giangvien_id', '=', 'gvhd.id')
-            ->leftJoin('giangvien as gvpb', 'detai.giangvien_phanbien_id', '=', 'gvpb.id')
-            ->whereNotNull('nhom_sinhvien.id')
-            ->select(
-                'sinhvien.mssv',
-                'sinhvien.hoten',
-                'sinhvien.lop',
-                'detai.ten_detai',
-                'gvhd.hoten as gvhd_hoten',
-                'gvpb.hoten as gvpb_hoten'
-            );
+        // Thử map qua email (nếu có)
+        if (!empty($user->email)) {
+            $gv = GiangVien::where('email', $user->email)
+                ->whereNull('nguoidung_id')
+                ->first();
 
-        // Nếu là giảng viên, chỉ xuất nhóm mình hướng dẫn hoặc phản biện
-        if ($user->vaitro === 'gvhd' || $user->vaitro === 'giangvien') {
-            $gv = GiangVien::where('nguoidung_id', $user->id)->first();
             if ($gv) {
-                $query->where(function ($q) use ($gv) {
-                    $q->where('detai.giangvien_id', $gv->id)
-                        ->orWhere('detai.giangvien_phanbien_id', $gv->id);
-                });
+                $gv->nguoidung_id = $user->id;
+                $gv->save();
+                return $gv;
             }
         }
 
-        $rows = $query->orderBy('sinhvien.mssv')->get();
-
-        $headers = [
-            'Content-Type' => 'text/csv; charset=UTF-8',
-            'Content-Disposition' => 'attachment; filename="phan_cong_gv_phan_bien.csv"',
-        ];
-
-        $columns = [
-            'STT',
-            'MSSV',
-            'Họ và tên SV',
-            'Lớp',
-            'Tên đề tài (GVHD nhập)',
-            'GVHD',
-            'GVPB',
-        ];
-
-        $callback = static function () use ($rows, $columns) {
-            $output = fopen('php://output', 'w');
-            fprintf($output, chr(0xEF) . chr(0xBB) . chr(0xBF)); // BOM UTF-8
-            fputcsv($output, $columns);
-
-            $stt = 1;
-            foreach ($rows as $row) {
-                fputcsv($output, [
-                    $stt++,
-                    $row->mssv,
-                    $row->hoten,
-                    $row->lop,
-                    $row->ten_detai ?? '-',
-                    $row->gvhd_hoten ?? '-',
-                    $row->gvpb_hoten ?? '-',
-                ]);
+        // Nếu là gvhd/giangvien/gvpb mà chưa có record giảng viên -> có thể tạo (tuỳ bạn)
+        // Nếu bạn KHÔNG muốn tự tạo, thì comment block này và return null.
+        if (in_array($user->vaitro ?? '', ['gvhd', 'giangvien', 'gvpb'], true)) {
+            $magv = 'GV' . str_pad($user->id, 4, '0', STR_PAD_LEFT);
+            $counter = 1;
+            while (GiangVien::where('magv', $magv)->exists()) {
+                $magv = 'GV' . str_pad($user->id, 4, '0', STR_PAD_LEFT) . '_' . $counter;
+                $counter++;
             }
 
-            fclose($output);
-        };
+            return GiangVien::create([
+                'nguoidung_id' => $user->id,
+                'magv' => $magv,
+                'hoten' => $user->hoten ?? $user->name ?? ('Giảng viên ' . $user->id),
+                'email' => $user->email,
+                'sdt' => $user->sdt ?? null,
+                'bo_mon' => 'CNTT',
+            ]);
+        }
 
-        return response()->streamDownload($callback, 'phan_cong_gv_phan_bien.csv', $headers);
+        return null;
+    }
+
+    /**
+     * Xuất Excel danh sách SV + GVHD + GVPB
+     */
+    public function exportCsv(): StreamedResponse
+    {
+        $user = Auth::user();
+
+        // CHỈ lọc theo giảng viên khi user là gvhd/giangvien/gvpb
+        $gv = $this->getGiangVienForUser($user);
+
+        $query = DeTai::with([
+            'nhomSinhVien.sinhViens',
+            'giangVien',
+            'giangVienPhanBien',
+        ])
+            ->whereNotNull('nhom_sinhvien_id')
+            ->whereHas('nhomSinhVien.sinhViens');
+
+        if ($gv) {
+            $query->where(function ($q) use ($gv) {
+                $q->where('giangvien_id', $gv->id)
+                    ->orWhere('giangvien_phanbien_id', $gv->id);
+            });
+        }
+
+        $deTais = $query->orderBy('ten_detai')->get();
+
+        // ====== TẠO EXCEL ======
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+
+        // Title
+        $sheet->mergeCells('A1:G1');
+        $sheet->setCellValue('A1', 'DANH SÁCH SINH VIÊN - GIÁO VIÊN HƯỚNG DẪN- GIÁO VIÊN PHẢN BIỆN - THU QUYỀN LVTN');
+        $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(14)->getColor()->setRGB('FF0000');
+        $sheet->getStyle('A1')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+        $sheet->getRowDimension(1)->setRowHeight(25);
+
+        $sheet->mergeCells('A2:G2');
+        $sheet->setCellValue('A2', 'ĐẠI HỌC 2025 VÀ KHÓA CŨ LÀM LẠI (ĐỢT 1_THÁNG 4)');
+        $sheet->getStyle('A2')->getFont()->setBold(true)->setSize(12)->getColor()->setRGB('800080');
+        $sheet->getStyle('A2')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+
+        $sheet->mergeCells('A3:G3');
+        $sheet->setCellValue('A3', 'NGÀNH : CÔNG NGHỆ THÔNG TIN');
+        $sheet->getStyle('A3')->getFont()->setBold(true)->setSize(12);
+        $sheet->getStyle('A3')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+
+        // Header
+        $sheet->setCellValue('A4', 'STT');
+        $sheet->setCellValue('B4', 'MSSV');
+        $sheet->setCellValue('C4', 'Họ và tên SV');
+        $sheet->setCellValue('D4', 'Lớp');
+        $sheet->setCellValue('E4', "Tên đề tài\n(GVHD nhập)");
+        $sheet->setCellValue('F4', 'GVHD');
+        $sheet->setCellValue('G4', 'GVPB');
+
+        $yellowStyle = [
+            'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'FFFF00']],
+            'font' => ['bold' => true, 'color' => ['rgb' => '000000']],
+            'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER],
+            'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN]],
+        ];
+
+        $greenStyle = [
+            'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '90EE90']],
+            'font' => ['bold' => true, 'color' => ['rgb' => '000000']],
+            'alignment' => [
+                'horizontal' => Alignment::HORIZONTAL_CENTER,
+                'vertical' => Alignment::VERTICAL_CENTER,
+                'wrapText' => true,
+            ],
+            'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN]],
+        ];
+
+        $sheet->getStyle('A4')->applyFromArray($yellowStyle);
+        $sheet->getStyle('B4')->applyFromArray($yellowStyle);
+        $sheet->getStyle('C4')->applyFromArray($yellowStyle);
+        $sheet->getStyle('D4')->applyFromArray($yellowStyle);
+        $sheet->getStyle('F4')->applyFromArray($yellowStyle);
+        $sheet->getStyle('G4')->applyFromArray($yellowStyle);
+
+        $sheet->getStyle('E4')->applyFromArray($greenStyle);
+        $sheet->getRowDimension(4)->setRowHeight(28);
+
+        // Data
+        $row = 5;
+        $stt = 1;
+
+        $borderAll = [
+            'borders' => [
+                'allBorders' => [
+                    'borderStyle' => Border::BORDER_THIN,
+                    'color' => ['rgb' => '000000'],
+                ],
+            ],
+            'alignment' => [
+                'vertical' => Alignment::VERTICAL_CENTER,
+            ],
+        ];
+
+        foreach ($deTais as $deTai) {
+            if (!$deTai->nhomSinhVien || $deTai->nhomSinhVien->sinhViens->isEmpty()) continue;
+
+            foreach ($deTai->nhomSinhVien->sinhViens as $sv) {
+                $sheet->setCellValue("A{$row}", $stt++);
+                $sheet->setCellValue("B{$row}", $sv->mssv ?? '-');
+                $sheet->setCellValue("C{$row}", $sv->hoten ?? '-');
+                $sheet->setCellValue("D{$row}", $sv->lop ?? '-');
+                $sheet->setCellValue("E{$row}", $deTai->ten_detai ?? '-');
+                $sheet->setCellValue("F{$row}", $deTai->giangVien?->hoten ?? '-');
+                $sheet->setCellValue("G{$row}", $deTai->giangVienPhanBien?->hoten ?? '-');
+
+                $sheet->getStyle("A{$row}:G{$row}")->applyFromArray($borderAll);
+
+                $sheet->getStyle("A{$row}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+                $sheet->getStyle("B{$row}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+                $sheet->getStyle("D{$row}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+
+                $row++;
+            }
+        }
+
+        // Nếu rỗng
+        if ($row === 5) {
+            $sheet->mergeCells('A5:G5');
+            $sheet->setCellValue('A5', 'KHÔNG CÓ DỮ LIỆU');
+            $sheet->getStyle('A5')->getFont()->setBold(true)->setSize(14)->getColor()->setRGB('FF0000');
+            $sheet->getStyle('A5')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+            $sheet->getStyle('A5:G5')->applyFromArray($borderAll);
+            $sheet->getRowDimension(5)->setRowHeight(30);
+        }
+
+        // Width
+        $sheet->getColumnDimension('A')->setWidth(8);
+        $sheet->getColumnDimension('B')->setWidth(14);
+        $sheet->getColumnDimension('C')->setWidth(28);
+        $sheet->getColumnDimension('D')->setWidth(12);
+        $sheet->getColumnDimension('E')->setWidth(45);
+        $sheet->getColumnDimension('F')->setWidth(22);
+        $sheet->getColumnDimension('G')->setWidth(22);
+
+        $writer = new Xlsx($spreadsheet);
+
+        return response()->streamDownload(function () use ($writer) {
+            $writer->save('php://output');
+        }, 'Danh_Sach_SV_GVHD_GVPB.xlsx', [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        ]);
     }
 }

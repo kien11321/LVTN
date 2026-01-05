@@ -12,37 +12,28 @@ class MenuHelper
         if ($role === 'admin') {
             $menus = [
                 [
-                    'title' => 'Quản lý Sinh viên',
+                    'title' => 'Tổng quan',
+                    'icon'  => '📊',
+                    'route' => 'dashboard',
+                ],
+                [
+                    'title' => 'Quản lý danh sách',
                     'icon' => '👥',
                     'children' => [
                         ['title' => 'Danh sách sinh viên', 'route' => 'sinhvien.index'],
-                        ['title' => 'Phân công sinh viên', 'route' => 'phancong.index'],
+                        ['title' => 'Danh sách Giảng viên', 'route' => 'giangvien.index'],
                         ['title' => 'Sinh viên chưa có đề tài', 'route' => 'sinhvien.nhom-chua-de-tai'],
                     ],
                 ],
                 [
-                    'title' => 'Quản lý Giảng viên',
+                    'title' => 'Quản lí phân công',
                     'icon' => '👨‍🏫',
                     'children' => [
-                        ['title' => 'Danh sách Giảng viên', 'route' => 'giangvien.index'],
+
+                        ['title' => 'Phân công sinh viên', 'route' => 'phancong.index'],
                         ['title' => 'Phân công Phản biện', 'route' => 'phan-bien.index'],
                     ],
                 ],
-                [
-                    'title' => 'Hội đồng LVTN',
-                    'icon' => '🏛️',
-                    'route' => 'hoi-dong.index',
-                ],
-                // [
-                //     'title' => 'Nhập Liệu',
-                //     'icon' => '📝',
-                //     'children' => [
-                //         // ['title' => 'Tạo Phiếu Giao Đề Tài', 'route' => 'tao-phieu-giao-detai.index'],
-                //         // ['title' => 'GVHD Chấm Điểm', 'route' => 'cham-diem-hd.index'],
-                //         // ['title' => 'GVPB Chấm Điểm', 'route' => 'cham-diem-pb.index'],
-                //         // ['title' => 'Nhập điểm Hội đồng', 'route' => 'nhap-diem-hoi-dong.index'],
-                //     ],
-                // ],
                 // [
                 //     'title' => 'Phân công đề tài',
                 //     'icon' => '📋',
@@ -53,29 +44,42 @@ class MenuHelper
                     'icon' => '📊',
                     'route' => 'theo-doi-tien-do.index',
                 ],
+                [
+                    'title' => 'Hội đồng LVTN',
+                    'icon' => '🏛️',
+                    'route' => 'hoi-dong.index',
+                ],
+                // [
+                //     'title' => 'Nhập Liệu',
+                //     'icon' => '📝',
+                //     'children' => [
+                //         ['title' => 'Tạo Phiếu Nhiệm vụ cho đề tài', 'route' => 'tao-phieu-giao-detai.index'],
+                //         ['title' => 'GVHD Chấm Điểm', 'route' => 'cham-diem-hd.index'],
+                //         ['title' => 'GVPB Chấm Điểm', 'route' => 'cham-diem-pb.index'],
+                //         ['title' => 'Nhập điểm Hội đồng', 'route' => 'nhap-diem-hoi-dong.index'],
+                //     ],
+                // ],
             ];
         }
 
-        // Menu cho Giảng viên hướng dẫn (GVHD)
+        // Menu cho Giảng viên hướng dẫn
         if ($role === 'gvhd' || $role === 'giangvien' || $role === 'gvpb') {
             $menus = [
+                [
+                    'title' => 'Tổng quan',
+                    'icon'  => '📊',
+                    'route' => 'dashboard',
+                ],
+
                 // [
                 //     'title' => 'Quản lý Sinh viên',
                 //     'icon' => '👥',
                 //     'children' => [
-                //         ['title' => 'Danh sách sinh viên', 'route' => 'sinhvien.index'],
-                //         
+
+
                 //     ],
                 // ],
-                [
-                    'title' => 'Nhập Liệu',
-                    'icon' => '📝',
-                    'children' => [
-                        ['title' => 'Chấm điểm hướng dẫn', 'route' => 'cham-diem-hd.index'],
-                        ['title' => 'Chấm điểm phản biện', 'route' => 'cham-diem-pb.index'],
-                        ['title' => 'Nhập điểm Hội đồng', 'route' => 'nhap-diem-hoi-dong.index'],
-                    ],
-                ],
+                ['title' => 'Danh sách sinh viên', 'icon' => '👥', 'route' => 'sinhvien.index'],
                 [
                     'title' => 'Phân công đề tài',
                     'icon' => '📋',
@@ -86,7 +90,41 @@ class MenuHelper
                     'icon' => '📊',
                     'route' => 'theo-doi-tien-do.index',
                 ],
+                [
+                    'title' => 'Nhập Liệu',
+                    'icon' => '📝',
+                    'children' => [
+                        ['title' => 'Tạo Phiếu Nhiệm vụ cho đề tài', 'route' => 'tao-phieu-giao-detai.index'],
+
+                     
+                        ['title' => 'Chấm điểm hướng dẫn', 'route' => 'cham-diem-hd.index'],
+                        ['title' => 'Chấm điểm phản biện', 'route' => 'cham-diem-pb.index'],
+                        ['title' => 'Nhập điểm Hội đồng', 'route' => 'nhap-diem-hoi-dong.index'],
+                    ],
+                ],
             ];
+
+
+        
+            if ($role === 'gvpb') {
+                foreach ($menus as &$m) {
+                    if (isset($m['children']) && $m['title'] === 'Nhập Liệu') {
+                        $m['children'] = array_values(array_filter($m['children'], function ($c) {
+                            return $c['route'] !== 'cham-diem-hd.index';
+                        }));
+                    }
+                }
+            }
+
+            if ($role === 'gvhd') {
+                foreach ($menus as &$m) {
+                    if (isset($m['children']) && $m['title'] === 'Nhập Liệu') {
+                        $m['children'] = array_values(array_filter($m['children'], function ($c) {
+                            return $c['route'] !== 'cham-diem-pb.index';
+                        }));
+                    }
+                }
+            }
         }
 
         // Menu mặc định (nếu không match role nào)

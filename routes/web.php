@@ -30,8 +30,55 @@ Route::post('/logout', [LoginController::class, 'logout'])->name('logout')->midd
 
 // Route tổng quan (dashboard)
 Route::get('/dashboard', function () {
-    return view('dashboard-overview');
+    $user = auth()->user();
+    $role = $user->vaitro ?? 'guest';
+
+    // Lấy giangvien_id của user 
+    // Ưu tiên: user có cột giangvien_id
+    $gvId = $user->giangvien_id ?? null;
+
+    
+    if (!$gvId) {
+        $gvId = \Illuminate\Support\Facades\DB::table('giangvien')
+            ->where('email', $user->email ?? '')
+            ->value('id');
+    }
+
+    // Admin: số tổng
+    $totalSinhVien = \Illuminate\Support\Facades\DB::table('sinhvien')->count();
+    $totalGiangVien = \Illuminate\Support\Facades\DB::table('giangvien')->count();
+    $totalDeTai = \Illuminate\Support\Facades\DB::table('detai')->count();
+
+    // Giảng viên:
+    $myDeTaiCount = 0;
+    $mySinhVienCount = 0;
+
+    if ($role === 'giangvien' && $gvId) {
+        // Đề tài  hướng dẫn
+        $myDeTaiCount = \Illuminate\Support\Facades\DB::table('detai')
+            ->where('giangvien_id', $gvId)
+            ->count();
+
+        // 
+        $mySinhVienCount = \Illuminate\Support\Facades\DB::table('sinhvien')
+            ->join('nhom_sinhvien_chitiet', 'sinhvien.id', '=', 'nhom_sinhvien_chitiet.sinhvien_id')
+            ->join('nhom_sinhvien', 'nhom_sinhvien.id', '=', 'nhom_sinhvien_chitiet.nhom_sinhvien_id')
+            ->join('detai', 'detai.nhom_sinhvien_id', '=', 'nhom_sinhvien.id')
+            ->where('detai.giangvien_id', $gvId)
+            ->distinct('sinhvien.id')
+            ->count('sinhvien.id');
+    }
+
+    return view('dashboard-overview', compact(
+        'role',
+        'totalSinhVien',
+        'totalGiangVien',
+        'totalDeTai',
+        'mySinhVienCount',
+        'myDeTaiCount'
+    ));
 })->name('dashboard')->middleware('auth');
+
 
 // Routes quản lý sinh viên (CRUD)
 Route::middleware(['auth'])->group(function () {
@@ -54,6 +101,8 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/phancong', [PhanCongController::class, 'index'])->name('phancong.index');
     Route::post('/phancong/update', [PhanCongController::class, 'update'])->name('phancong.update');
     Route::post('/phancong/update-nhom', [PhanCongController::class, 'updateNhom'])->name('phancong.update-nhom');
+    Route::post('/phancong/update-nhom-bulk', [PhanCongController::class, 'updateNhomBulk'])
+        ->name('phancong.update-nhom-bulk');
 });
 
 // Routes theo dõi tiến độ

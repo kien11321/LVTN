@@ -22,10 +22,15 @@ class HoiDongController extends Controller
      */
     public function index()
     {
-        $hoiDongs = HoiDong::with(['chuTich', 'thuKy', 'uyVien1', 'uyVien2', 'deTais.nhomSinhVien.sinhViens', 'deTais.giangVien'])
-            ->orderBy('ngay_bao_ve', 'desc')
-            ->orderBy('created_at', 'desc')
+        $hoiDongs = HoiDong::with([
+            'deTais', // không filter ở đây nữa
+            'deTais.nhomSinhVien.sinhViens',
+            'deTais.giangVien'
+        ])
+            ->orderBy('ngay_bao_ve', 'asc')
+            ->orderBy('ten_hoi_dong')
             ->get();
+
 
         $giangViens = GiangVien::orderBy('hoten')->get();
 

@@ -109,7 +109,6 @@ class ChamDiemHuongDanController extends Controller
                 });
             })
             ->when($user->vaitro === 'admin', function ($q) {
-                // Nếu là admin, chỉ hiển thị nhóm có đề tài
                 $q->whereHas('deTai');
             })
             ->whereHas('sinhViens') // Chỉ hiển thị nhóm có thành viên
@@ -118,6 +117,26 @@ class ChamDiemHuongDanController extends Controller
             })
             ->orderBy('ten_nhom')
             ->get();
+
+        $nhomDaChamIds = [];
+        if ($gv) {
+            foreach ($allNhomSinhViens as $nhom) {
+                $detaiId = $nhom->deTai->id ?? null;
+                if (!$detaiId) continue;
+
+                $svIds = $nhom->sinhViens->pluck('id')->toArray();
+                if (empty($svIds)) continue;
+
+                $countDaCham = ChamDiemHuongDan::where('giangvien_id', $gv->id)
+                    ->where('detai_id', $detaiId)
+                    ->whereIn('sinhvien_id', $svIds)
+                    ->count();
+
+                if ($countDaCham === count($svIds)) {
+                    $nhomDaChamIds[] = $nhom->id;
+                }
+            }
+        }
 
         // Nhóm được chọn (nếu có)
         $selectedNhomId = $request->get('nhom_id');
@@ -134,8 +153,14 @@ class ChamDiemHuongDanController extends Controller
             }
         }
 
-        return view('cham-diem-hd.index', compact('allNhomSinhViens', 'selectedNhom', 'chamDiems'));
+        return view('cham-diem-hd.index', compact(
+            'allNhomSinhViens',
+            'selectedNhom',
+            'chamDiems',
+            'nhomDaChamIds'
+        ));
     }
+
 
     public function store(Request $request)
     {
@@ -328,187 +353,5 @@ class ChamDiemHuongDanController extends Controller
         } catch (\Exception $e) {
             return back()->with('error', 'Lỗi: ' . $e->getMessage());
         }
-    }
-    /**
-     * Xuất Excel danh sách sinh viên - GVHD - GVPB
-     */
-    public function exportExcel(): StreamedResponse
-    {
-        $user = Auth::user();
-        $gv = $this->getGiangVienForUser($user);
-
-        // Lấy tất cả đề tài mà GV này hướng dẫn
-        $query = DeTai::with([
-            'nhomSinhVien.sinhViens',
-            'giangVien',
-            'giangVienPhanBien',
-        ])
-            ->whereNotNull('nhom_sinhvien_id')
-            ->whereHas('nhomSinhVien.sinhViens');
-
-        if ($gv) {
-            $query->where('giangvien_id', $gv->id);
-        }
-
-        $deTais = $query->orderBy('ten_detai')->get();
-
-        // Tạo Spreadsheet
-        $spreadsheet = new Spreadsheet();
-        $sheet = $spreadsheet->getActiveSheet();
-
-        // Tiêu đề chính (màu đỏ)
-        $sheet->mergeCells('A1:H1');
-        $sheet->setCellValue('A1', 'DANH SÁCH SINH VIÊN - GIÁO VIÊN HƯỚNG DẪN- GIÁO VIÊN PHẢN BIỆN - THU QUYỀN LVTN');
-        $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(14)->getColor()->setRGB('FF0000');
-        $sheet->getStyle('A1')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-        $sheet->getRowDimension(1)->setRowHeight(25);
-
-        // Subtitle (màu tím)
-        $sheet->mergeCells('A2:H2');
-        $sheet->setCellValue('A2', 'ĐẠI HỌC 2025 VÀ KHÓA CŨ LÀM LẠI (ĐỢT 1_THÁNG 4');
-        $sheet->getStyle('A2')->getFont()->setBold(true)->setSize(12)->getColor()->setRGB('800080');
-        $sheet->getStyle('A2')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-        $sheet->getRowDimension(2)->setRowHeight(20);
-
-        // Ngành (màu đen)
-        $sheet->mergeCells('A3:H3');
-        $sheet->setCellValue('A3', 'NGÀNH : CÔNG NGHỆ THÔNG TIN');
-        $sheet->getStyle('A3')->getFont()->setBold(true)->setSize(12);
-        $sheet->getStyle('A3')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-        $sheet->getRowDimension(3)->setRowHeight(20);
-
-        // Header row 4
-        $sheet->setCellValue('A4', 'STT');
-        $sheet->setCellValue('B4', 'MSSV');
-        $sheet->setCellValue('C4', 'Họ và tên SV');
-        $sheet->setCellValue('D4', 'Lớp');
-        $sheet->setCellValue('E4', 'Tên đề tài' . "\n" . '(GVHD nhập)');
-        $sheet->setCellValue('F4', '');
-        $sheet->setCellValue('G4', 'GVHD');
-        $sheet->setCellValue('H4', 'GVPB');
-
-        // Format header rows (màu vàng và xanh lá)
-        $yellowStyle = [
-            'fill' => [
-                'fillType' => Fill::FILL_SOLID,
-                'startColor' => ['rgb' => 'FFFF00'], // Màu vàng
-            ],
-            'font' => [
-                'bold' => true,
-                'color' => ['rgb' => '000000'],
-            ],
-            'alignment' => [
-                'horizontal' => Alignment::HORIZONTAL_CENTER,
-                'vertical' => Alignment::VERTICAL_CENTER,
-            ],
-            'borders' => [
-                'allBorders' => [
-                    'borderStyle' => Border::BORDER_THIN,
-                ],
-            ],
-        ];
-
-        $greenStyle = [
-            'fill' => [
-                'fillType' => Fill::FILL_SOLID,
-                'startColor' => ['rgb' => '90EE90'], // Màu xanh lá nhạt
-            ],
-            'font' => [
-                'bold' => true,
-                'color' => ['rgb' => '000000'],
-            ],
-            'alignment' => [
-                'horizontal' => Alignment::HORIZONTAL_CENTER,
-                'vertical' => Alignment::VERTICAL_CENTER,
-                'wrapText' => true,
-            ],
-            'borders' => [
-                'allBorders' => [
-                    'borderStyle' => Border::BORDER_THIN,
-                ],
-            ],
-        ];
-
-        // Merge các cells header
-        $sheet->mergeCells('A4:A5');
-        $sheet->mergeCells('B4:B5');
-        $sheet->mergeCells('C4:C5');
-        $sheet->mergeCells('D4:D5');
-        $sheet->mergeCells('E4:E5');
-        $sheet->mergeCells('F4:F5');
-        $sheet->mergeCells('G4:G5');
-        $sheet->mergeCells('H4:H5');
-
-        // Áp dụng màu vàng cho A, B, C, D, G, H
-        $sheet->getStyle('A4')->applyFromArray($yellowStyle);
-        $sheet->getStyle('B4')->applyFromArray($yellowStyle);
-        $sheet->getStyle('C4')->applyFromArray($yellowStyle);
-        $sheet->getStyle('D4')->applyFromArray($yellowStyle);
-        $sheet->getStyle('G4')->applyFromArray($yellowStyle);
-        $sheet->getStyle('H4')->applyFromArray($yellowStyle);
-
-        // Áp dụng màu xanh lá cho E
-        $sheet->getStyle('E4')->applyFromArray($greenStyle);
-        $sheet->getStyle('E4')->getAlignment()->setWrapText(true);
-
-        $sheet->getRowDimension(4)->setRowHeight(25);
-        $sheet->getRowDimension(5)->setRowHeight(25);
-
-        // Dữ liệu
-        $row = 6;
-        $stt = 1;
-        foreach ($deTais as $deTai) {
-            if (!$deTai->nhomSinhVien || $deTai->nhomSinhVien->sinhViens->isEmpty()) {
-                continue;
-            }
-
-            foreach ($deTai->nhomSinhVien->sinhViens as $sv) {
-                $sheet->setCellValue('A' . $row, $stt++);
-                $sheet->setCellValue('B' . $row, $sv->mssv ?? '-');
-                $sheet->setCellValue('C' . $row, $sv->hoten ?? '-');
-                $sheet->setCellValue('D' . $row, $sv->lop ?? '-');
-                $sheet->setCellValue('E' . $row, $deTai->ten_detai ?? '-');
-                $sheet->setCellValue('F' . $row, ''); // Cột trống
-                $sheet->setCellValue('G' . $row, $deTai->giangVien ? $deTai->giangVien->hoten : '-');
-                $sheet->setCellValue('H' . $row, $deTai->giangVienPhanBien ? $deTai->giangVienPhanBien->hoten : '-');
-
-                // Format data row
-                $dataStyle = [
-                    'borders' => [
-                        'allBorders' => [
-                            'borderStyle' => Border::BORDER_THIN,
-                        ],
-                    ],
-                    'alignment' => [
-                        'vertical' => Alignment::VERTICAL_CENTER,
-                    ],
-                ];
-                $sheet->getStyle('A' . $row . ':H' . $row)->applyFromArray($dataStyle);
-                $sheet->getStyle('A' . $row)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-                $sheet->getStyle('B' . $row)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-                $sheet->getStyle('D' . $row)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-
-                $row++;
-            }
-        }
-
-        // Auto width columns
-        $sheet->getColumnDimension('A')->setWidth(8);
-        $sheet->getColumnDimension('B')->setWidth(12);
-        $sheet->getColumnDimension('C')->setWidth(25);
-        $sheet->getColumnDimension('D')->setWidth(12);
-        $sheet->getColumnDimension('E')->setWidth(40);
-        $sheet->getColumnDimension('F')->setWidth(5);
-        $sheet->getColumnDimension('G')->setWidth(20);
-        $sheet->getColumnDimension('H')->setWidth(20);
-
-        // Writer
-        $writer = new Xlsx($spreadsheet);
-
-        return response()->streamDownload(function () use ($writer) {
-            $writer->save('php://output');
-        }, 'Danh_Sach_SV_GVHD_GVPB.xlsx', [
-            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        ]);
     }
 }

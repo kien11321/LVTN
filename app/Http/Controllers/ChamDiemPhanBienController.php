@@ -27,7 +27,7 @@ class ChamDiemPhanBienController extends Controller
             return $gv;
         }
 
-        // Nếu không tìm thấy, thử tìm qua email và tự động liên kết
+
         if ($user->email) {
             $gv = GiangVien::where('email', $user->email)
                 ->whereNull('nguoidung_id')
@@ -46,9 +46,9 @@ class ChamDiemPhanBienController extends Controller
             }
         }
 
-        // Nếu user có vai trò là giảng viên hoặc admin nhưng chưa có giảng viên, tự động tạo mới
+
         if (in_array($user->vaitro ?? '', ['gvhd', 'giangvien', 'admin', 'gvpb'])) {
-            // Tạo mã giảng viên duy nhất
+
             $magv = 'GV' . str_pad($user->id, 4, '0', STR_PAD_LEFT);
             $counter = 1;
             while (GiangVien::where('magv', $magv)->exists()) {
@@ -111,6 +111,42 @@ class ChamDiemPhanBienController extends Controller
             ->orderBy('ten_nhom')
             ->get();
 
+        /**
+         * ✅ THÊM: Tính nhóm đã chấm để dropdown hiển thị ngay
+         */
+        $nhomDaChamIds = [];
+
+        if ($gv && $allNhomSinhViens->isNotEmpty()) {
+            $detaiIds = $allNhomSinhViens->pluck('deTai.id')->filter()->unique()->values();
+
+            if ($detaiIds->isNotEmpty()) {
+                // Lấy toàn bộ điểm PB của GV này cho tất cả đề tài trong dropdown
+                $allScores = ChamDiemPhanBien::where('giangvien_id', $gv->id)
+                    ->whereIn('detai_id', $detaiIds)
+                    ->get()
+                    ->groupBy('detai_id'); // [detai_id] => collection điểm
+
+                foreach ($allNhomSinhViens as $nhom) {
+                    $detaiId = $nhom->deTai->id ?? null;
+                    if (!$detaiId) continue;
+
+                    $scoresOfDetai = $allScores->get($detaiId, collect())->groupBy('sinhvien_id');
+
+                    $daChamHet = true;
+                    foreach ($nhom->sinhViens as $sv) {
+                        if (!$scoresOfDetai->has($sv->id) || $scoresOfDetai->get($sv->id)->isEmpty()) {
+                            $daChamHet = false;
+                            break;
+                        }
+                    }
+
+                    if ($daChamHet) {
+                        $nhomDaChamIds[] = $nhom->id;
+                    }
+                }
+            }
+        }
+
         // Nhóm được chọn (nếu có)
         $selectedNhomId = $request->get('nhom_id');
         $selectedNhom = null;
@@ -126,8 +162,14 @@ class ChamDiemPhanBienController extends Controller
             }
         }
 
-        return view('cham-diem-pb.index', compact('allNhomSinhViens', 'selectedNhom', 'chamDiems'));
+        return view('cham-diem-pb.index', compact(
+            'allNhomSinhViens',
+            'selectedNhom',
+            'chamDiems',
+            'nhomDaChamIds'
+        ));
     }
+
 
     // app/Http/Controllers/ChamDiemPhanBienController.php
 
